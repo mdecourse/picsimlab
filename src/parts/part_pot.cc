@@ -4,7 +4,7 @@
 
    ########################################################################
 
-   Copyright (c) : 2010-2017  Luis Claudio Gambôa Lopes
+   Copyright (c) : 2010-2020  Luis Claudio Gambôa Lopes
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -70,7 +70,6 @@ cpart_pot::cpart_pot (unsigned x, unsigned y)
  active[2] = 0;
  active[3] = 0;
 
- refresh=0;
 }
 
 cpart_pot::~cpart_pot (void)
@@ -84,10 +83,13 @@ cpart_pot::Draw (void)
 {
 
  int i;
-
+ lxRect rect;
+ char  val[10];
+ 
  canvas.Init ();
 
  lxFont font (9, lxFONTFAMILY_TELETYPE, lxFONTSTYLE_NORMAL, lxFONTWEIGHT_BOLD);
+ lxFont font_p (6, lxFONTFAMILY_TELETYPE, lxFONTSTYLE_NORMAL, lxFONTWEIGHT_BOLD);
  canvas.SetFont (font);
 
  for (i = 0; i < outputc; i++)
@@ -114,35 +116,33 @@ cpart_pot::Draw (void)
      canvas.SetColor (50, 50, 50);
      canvas.Rectangle (1, output[i].x1, output[i].y1, output[i].x2 - output[i].x1, output[i].y2 - output[i].y1);
      canvas.SetColor (250, 250, 250);
-     canvas.Rectangle (1, output[i].x1 + 6, output[i].y1 + values[output[i].id - O_PO1], 20, 10);
+     rect.x=output[i].x1 + 6;
+     rect.y=output[i].y1 + values[output[i].id - O_PO1];
+     rect.width=20;
+     rect.height= 10;  
+     snprintf (val,10,"%4.2f", 5.0 * (148 - values[output[i].id - O_PO1]) / 148.0);
+     canvas.Rectangle (1, rect.x, rect.y, 20, 10);
+     canvas.SetColor (150, 0, 0);
+     canvas.SetFont (font_p);
+     canvas.TextOnRect (val,rect,CA_CENTER);
      break;
      break;
     }
 
 
-  };
+  }
 
  canvas.End ();
 
 }
 
 void
-cpart_pot::Process (void)
+cpart_pot::PreProcess (void)
 {
-
-
- if (refresh > 100000)
-  {
-   refresh = 0;
-
    Window5.SetAPin (input_pins[0], 5.0 * (148 - values[0]) / 148.0);
    Window5.SetAPin (input_pins[1], 5.0 * (148 - values[1]) / 148.0);
    Window5.SetAPin (input_pins[2], 5.0 * (148 - values[2]) / 148.0);
    Window5.SetAPin (input_pins[3], 5.0 * (148 - values[3]) / 148.0);
-
-  }
- refresh++;
-
 }
 
 void
@@ -271,7 +271,7 @@ cpart_pot::get_in_id (char * name)
 
  printf ("Erro input '%s' don't have a valid id! \n", name);
  return -1;
-};
+}
 
 unsigned short
 cpart_pot::get_out_id (char * name)
@@ -289,9 +289,9 @@ cpart_pot::get_out_id (char * name)
 
  printf ("Erro output '%s' don't have a valid id! \n", name);
  return 1;
-};
+}
 
-String
+lxString
 cpart_pot::WritePreferences (void)
 {
  char prefs[256];
@@ -299,72 +299,73 @@ cpart_pot::WritePreferences (void)
  sprintf (prefs, "%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu", input_pins[0], input_pins[1], input_pins[2], input_pins[3], values[0], values[1], values[2], values[3]);
 
  return prefs;
-};
+}
 
 void
-cpart_pot::ReadPreferences (String value)
+cpart_pot::ReadPreferences (lxString value)
 {
  sscanf (value.c_str (), "%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu", &input_pins[0], &input_pins[1], &input_pins[2], &input_pins[3], &values[0], &values[1], &values[2], &values[3]);
-};
+}
 
-CPWindow * WProp_pot;
 
 void
-cpart_pot::ConfigurePropertiesWindow (CPWindow * wprop)
+cpart_pot::ConfigurePropertiesWindow (CPWindow * WProp)
 {
- String Items = Window5.GetPinsNames ();
- String spin;
- WProp_pot = wprop;
+ lxString Items = Window5.GetPinsNames ();
+ lxString spin;
 
- ((CCombo*) WProp_pot->GetChildByName ("combo1"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo1"))->SetItems (Items);
  if (input_pins[0] == 0)
-  ((CCombo*) WProp_pot->GetChildByName ("combo1"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo1"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[0]);
-   ((CCombo*) WProp_pot->GetChildByName ("combo1"))->SetText (itoa (input_pins[0]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo1"))->SetText (itoa (input_pins[0]) + "  " + spin);
   }
 
- ((CCombo*) WProp_pot->GetChildByName ("combo2"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo2"))->SetItems (Items);
  if (input_pins[1] == 0)
-  ((CCombo*) WProp_pot->GetChildByName ("combo2"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo2"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[1]);
-   ((CCombo*) WProp_pot->GetChildByName ("combo2"))->SetText (itoa (input_pins[1]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo2"))->SetText (itoa (input_pins[1]) + "  " + spin);
   }
 
- ((CCombo*) WProp_pot->GetChildByName ("combo3"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo3"))->SetItems (Items);
  if (input_pins[2] == 0)
-  ((CCombo*) WProp_pot->GetChildByName ("combo3"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo3"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[2]);
-   ((CCombo*) WProp_pot->GetChildByName ("combo3"))->SetText (itoa (input_pins[2]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo3"))->SetText (itoa (input_pins[2]) + "  " + spin);
   }
 
- ((CCombo*) WProp_pot->GetChildByName ("combo4"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo4"))->SetItems (Items);
  if (input_pins[3] == 0)
-  ((CCombo*) WProp_pot->GetChildByName ("combo4"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo4"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[3]);
-   ((CCombo*) WProp_pot->GetChildByName ("combo4"))->SetText (itoa (input_pins[3]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo4"))->SetText (itoa (input_pins[3]) + "  " + spin);
   }
 
 
- ((CButton*) WProp_pot->GetChildByName ("button1"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
- ((CButton*) WProp_pot->GetChildByName ("button1"))->SetTag (1);
+ ((CButton*) WProp->GetChildByName ("button1"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
+ ((CButton*) WProp->GetChildByName ("button1"))->SetTag (1);
 
- ((CButton*) WProp_pot->GetChildByName ("button2"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
+ ((CButton*) WProp->GetChildByName ("button2"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
 }
 
 void
-cpart_pot::ReadPropertiesWindow (void)
+cpart_pot::ReadPropertiesWindow (CPWindow * WProp)
 {
- input_pins[0] = atoi (((CCombo*) WProp_pot->GetChildByName ("combo1"))->GetText ());
- input_pins[1] = atoi (((CCombo*) WProp_pot->GetChildByName ("combo2"))->GetText ());
- input_pins[2] = atoi (((CCombo*) WProp_pot->GetChildByName ("combo3"))->GetText ());
- input_pins[3] = atoi (((CCombo*) WProp_pot->GetChildByName ("combo4"))->GetText ());
+ input_pins[0] = atoi (((CCombo*) WProp->GetChildByName ("combo1"))->GetText ());
+ input_pins[1] = atoi (((CCombo*) WProp->GetChildByName ("combo2"))->GetText ());
+ input_pins[2] = atoi (((CCombo*) WProp->GetChildByName ("combo3"))->GetText ());
+ input_pins[3] = atoi (((CCombo*) WProp->GetChildByName ("combo4"))->GetText ());
 }
+
+
+part_init("Potentiometers", cpart_pot);
 

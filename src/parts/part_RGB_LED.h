@@ -33,18 +33,20 @@
 class cpart_rgb_led:public part
 {
    public:
-      String GetName(void){return lxT("RGB LED");};
+      lxString GetName(void){return lxT("RGB LED");};
+      lxString GetHelpURL(void){return lxT("RGB_LED.html");};
+      lxString GetAboutInfo(void){return lxT("L.C. Gamboa \n <lcgamboa@yahoo.com>");};            
       cpart_rgb_led(unsigned x, unsigned y);
       ~cpart_rgb_led(void);
       void Draw(void);
-      String GetPictureFileName(void){return lxT("RGB_LED.png");};
-      String GetInputMapFile(void){return lxT("RGB_LED_i.map");};
-      String GetOutputMapFile(void){return lxT("RGB_LED_o.map");};
-      String GetPropertiesWindowFile(void){return lxT("RGB_LED.lxrad");};
-      void ConfigurePropertiesWindow(CPWindow *  wprop);
-      void ReadPropertiesWindow(void);
-      String WritePreferences(void);
-      void ReadPreferences(String value);
+      lxString GetPictureFileName(void){return lxT("rgb_led/RGB_LED.png");};
+      lxString GetInputMapFile(void){return lxT("rgb_led/RGB_LED_i.map");};
+      lxString GetOutputMapFile(void){return lxT("rgb_led/RGB_LED_o.map");};
+      lxString GetPropertiesWindowFile(void){return lxT("rgb_led/RGB_LED.lxrad");};
+      void ConfigurePropertiesWindow(CPWindow *  WProp);
+      void ReadPropertiesWindow(CPWindow * WProp);
+      lxString WritePreferences(void);
+      void ReadPreferences(lxString value);
       unsigned short get_in_id(char * name);
       unsigned short get_out_id(char * name);
      private:

@@ -33,24 +33,26 @@
 class cpart_dtfunc:public part
 {
    public:
-      String GetName(void){return lxT("D. Transfer function");};
+      lxString GetName(void){return lxT("D. Transfer function");};
+      lxString GetHelpURL(void){return lxT("D_Transfer_Function.html");};
+      lxString GetAboutInfo(void){return lxT("L.C. Gamboa \n <lcgamboa@yahoo.com>");};            
       cpart_dtfunc(unsigned x, unsigned y);
       ~cpart_dtfunc(void);
       void Draw(void);
       void Process(void);
-      String GetPictureFileName(void){return lxT("d_transfer_function.png");};
-      String GetInputMapFile(void){return lxT("d_transfer_function_i.map");};
-      String GetOutputMapFile(void){return lxT("d_transfer_function_o.map");};
-      String GetPropertiesWindowFile(void){return lxT("d_transfer_function.lxrad");};
+      lxString GetPictureFileName(void){return lxT("dtfunc/d_transfer_function.png");};
+      lxString GetInputMapFile(void){return lxT("dtfunc/d_transfer_function_i.map");};
+      lxString GetOutputMapFile(void){return lxT("dtfunc/d_transfer_function_o.map");};
+      lxString GetPropertiesWindowFile(void){return lxT("dtfunc/d_transfer_function.lxrad");};
       void Reset(void);
       void EvMouseButtonPress(uint button, uint x, uint y,uint state);
       void EvMouseButtonRelease(uint button, uint x, uint y,uint state);
       void EvKeyPress(uint key, uint mask);
       void EvKeyRelease(uint key, uint mask);
-      void ConfigurePropertiesWindow(CPWindow *  wprop);
-      void ReadPropertiesWindow(void);
-      String WritePreferences(void);
-      void ReadPreferences(String value);
+      void ConfigurePropertiesWindow(CPWindow *  WProp);
+      void ReadPropertiesWindow(CPWindow * WProp);
+      lxString WritePreferences(void);
+      void ReadPreferences(lxString value);
       unsigned short get_in_id(char * name);
       unsigned short get_out_id(char * name);
    private:

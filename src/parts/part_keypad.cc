@@ -46,58 +46,58 @@ enum
  KT4x4 = 1, KT4x3, KT2x5
 };
 
-String
+lxString
 cpart_keypad::GetPictureFileName(void)
 {
  switch (type)
   {
   case KT4x4:
-   return lxT ("keypad_4x4.png");
+   return lxT ("keypad/keypad_4x4.png");
    break;
   case KT4x3:
-   return lxT ("keypad_4x3.png");
+   return lxT ("keypad/keypad_4x3.png");
    break;
   case KT2x5:
-   return lxT ("keypad_2x5.png");
+   return lxT ("keypad/keypad_2x5.png");
    break;
   }
- return lxT ("");
+ return lxT ("keypad/keypad_4x4.png");
 }
 
-String
+lxString
 cpart_keypad::GetInputMapFile(void)
 {
  switch (type)
   {
   case KT4x4:
-   return lxT ("keypad_4x4_i.map");
+   return lxT ("keypad/keypad_4x4_i.map");
    break;
   case KT4x3:
-   return lxT ("keypad_4x3_i.map");
+   return lxT ("keypad/keypad_4x3_i.map");
    break;
   case KT2x5:
-   return lxT ("keypad_2x5_i.map");
+   return lxT ("keypad/keypad_2x5_i.map");
    break;
   }
- return lxT ("");
+ return lxT ("keypad/keypad_4x4_i.map");
 }
 
-String
+lxString
 cpart_keypad::GetOutputMapFile(void)
 {
  switch (type)
   {
   case KT4x4:
-   return lxT ("keypad_4x4_o.map");
+   return lxT ("keypad/keypad_4x4_o.map");
    break;
   case KT4x3:
-   return lxT ("keypad_4x3_o.map");
+   return lxT ("keypad/keypad_4x3_o.map");
    break;
   case KT2x5:
-   return lxT ("keypad_2x5_o.map");
+   return lxT ("keypad/keypad_2x5_o.map");
    break;
   }
- return lxT ("");
+ return lxT ("keypad/keypad_4x4_o.map");
 }
 
 cpart_keypad::cpart_keypad(unsigned x, unsigned y)
@@ -137,6 +137,11 @@ cpart_keypad::~cpart_keypad(void)
 void
 cpart_keypad::ChangeType(unsigned char tp)
 {
+
+
+ if(!tp)tp=KT4x4;
+ if(tp > KT2x5)tp=KT4x4; 
+ 
  //if same
  if (tp == type) return;
 
@@ -202,7 +207,7 @@ cpart_keypad::Draw(void)
     }
 
 
-  };
+  }
 
  canvas.End ();
 
@@ -313,7 +318,7 @@ cpart_keypad::EvMouseButtonPress(uint button, uint x, uint y, uint state)
       }
     }
   }
-};
+}
 
 void
 cpart_keypad::EvMouseButtonRelease(uint button, uint x, uint y, uint state)
@@ -389,7 +394,7 @@ cpart_keypad::get_in_id(char * name)
 
  printf ("Erro input '%s' don't have a valid id! \n", name);
  return -1;
-};
+}
 
 unsigned short
 cpart_keypad::get_out_id(char * name)
@@ -407,9 +412,9 @@ cpart_keypad::get_out_id(char * name)
 
  printf ("Erro output '%s' don't have a valid id! \n", name);
  return 1;
-};
+}
 
-String
+lxString
 cpart_keypad::WritePreferences(void)
 {
  char prefs[256];
@@ -417,10 +422,10 @@ cpart_keypad::WritePreferences(void)
  sprintf (prefs, "%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu", output_pins[0], output_pins[1], output_pins[2], output_pins[3], output_pins[4], output_pins[5], output_pins[6], output_pins[7], pull, type);
 
  return prefs;
-};
+}
 
 void
-cpart_keypad::ReadPreferences(String value)
+cpart_keypad::ReadPreferences(lxString value)
 {
  unsigned char tp;
  sscanf (value.c_str (), "%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu", &output_pins[0], &output_pins[1], &output_pins[2], &output_pins[3], &output_pins[4], &output_pins[5], &output_pins[6], &output_pins[7], &pull, &tp);
@@ -429,155 +434,153 @@ cpart_keypad::ReadPreferences(String value)
  ChangeType (tp);
 }
 
-CPWindow * WProp_keypad;
 
 void
-cpart_keypad::ConfigurePropertiesWindow(CPWindow * wprop)
+cpart_keypad::ConfigurePropertiesWindow(CPWindow * WProp)
 {
- String Items = Window5.GetPinsNames ();
- String spin;
- WProp_keypad = wprop;
+ lxString Items = Window5.GetPinsNames ();
+ lxString spin;
 
- ((CCombo*) WProp_keypad->GetChildByName ("combo1"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo1"))->SetItems (Items);
  if (output_pins[0] == 0)
-  ((CCombo*) WProp_keypad->GetChildByName ("combo1"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo1"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (output_pins[0]);
-   ((CCombo*) WProp_keypad->GetChildByName ("combo1"))->SetText (itoa (output_pins[0]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo1"))->SetText (itoa (output_pins[0]) + "  " + spin);
   }
 
- ((CCombo*) WProp_keypad->GetChildByName ("combo2"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo2"))->SetItems (Items);
  if (output_pins[1] == 0)
-  ((CCombo*) WProp_keypad->GetChildByName ("combo2"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo2"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (output_pins[1]);
-   ((CCombo*) WProp_keypad->GetChildByName ("combo2"))->SetText (itoa (output_pins[1]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo2"))->SetText (itoa (output_pins[1]) + "  " + spin);
   }
 
- ((CCombo*) WProp_keypad->GetChildByName ("combo3"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo3"))->SetItems (Items);
  if (output_pins[2] == 0)
-  ((CCombo*) WProp_keypad->GetChildByName ("combo3"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo3"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (output_pins[2]);
-   ((CCombo*) WProp_keypad->GetChildByName ("combo3"))->SetText (itoa (output_pins[2]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo3"))->SetText (itoa (output_pins[2]) + "  " + spin);
   }
 
- ((CCombo*) WProp_keypad->GetChildByName ("combo4"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo4"))->SetItems (Items);
  if (output_pins[3] == 0)
-  ((CCombo*) WProp_keypad->GetChildByName ("combo4"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo4"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (output_pins[3]);
-   ((CCombo*) WProp_keypad->GetChildByName ("combo4"))->SetText (itoa (output_pins[3]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo4"))->SetText (itoa (output_pins[3]) + "  " + spin);
   }
 
- ((CCombo*) WProp_keypad->GetChildByName ("combo5"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo5"))->SetItems (Items);
  if (output_pins[4] == 0)
-  ((CCombo*) WProp_keypad->GetChildByName ("combo5"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo5"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (output_pins[4]);
-   ((CCombo*) WProp_keypad->GetChildByName ("combo5"))->SetText (itoa (output_pins[4]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo5"))->SetText (itoa (output_pins[4]) + "  " + spin);
   }
 
- ((CCombo*) WProp_keypad->GetChildByName ("combo6"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo6"))->SetItems (Items);
  if (output_pins[5] == 0)
-  ((CCombo*) WProp_keypad->GetChildByName ("combo6"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo6"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (output_pins[5]);
-   ((CCombo*) WProp_keypad->GetChildByName ("combo6"))->SetText (itoa (output_pins[5]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo6"))->SetText (itoa (output_pins[5]) + "  " + spin);
   }
 
- ((CCombo*) WProp_keypad->GetChildByName ("combo7"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo7"))->SetItems (Items);
  if (output_pins[6] == 0)
-  ((CCombo*) WProp_keypad->GetChildByName ("combo7"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo7"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (output_pins[6]);
-   ((CCombo*) WProp_keypad->GetChildByName ("combo7"))->SetText (itoa (output_pins[6]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo7"))->SetText (itoa (output_pins[6]) + "  " + spin);
   }
 
- ((CCombo*) WProp_keypad->GetChildByName ("combo8"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo8"))->SetItems (Items);
  if (output_pins[7] == 0)
-  ((CCombo*) WProp_keypad->GetChildByName ("combo8"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo8"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (output_pins[7]);
-   ((CCombo*) WProp_keypad->GetChildByName ("combo8"))->SetText (itoa (output_pins[7]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo8"))->SetText (itoa (output_pins[7]) + "  " + spin);
   }
 
  if (!pull)
-  ((CCombo*) WProp_keypad->GetChildByName ("combo9"))->SetText ("UP");
+  ((CCombo*) WProp->GetChildByName ("combo9"))->SetText ("UP");
  else
-  ((CCombo*) WProp_keypad->GetChildByName ("combo9"))->SetText ("DOWN");
+  ((CCombo*) WProp->GetChildByName ("combo9"))->SetText ("DOWN");
 
  switch (type)
   {
   case KT4x4:
-   ((CLabel*) WProp_keypad->GetChildByName ("label1"))->SetText (lxT ("P1 - L1"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label2"))->SetText (lxT ("P2 - L2"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label3"))->SetText (lxT ("P3 - L3"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label4"))->SetText (lxT ("P4 - L4"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label5"))->SetText (lxT ("P5 - C1"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label6"))->SetText (lxT ("P6 - C2"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label7"))->SetText (lxT ("P7 - C3"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label8"))->SetText (lxT ("P8 - C4"));
-   ((CCombo*) WProp_keypad->GetChildByName ("combo8"))->SetEnable (true);
-   ((CCombo*) WProp_keypad->GetChildByName ("combo10"))->SetText ("4x4");
+   ((CLabel*) WProp->GetChildByName ("label1"))->SetText (lxT ("P1 - L1"));
+   ((CLabel*) WProp->GetChildByName ("label2"))->SetText (lxT ("P2 - L2"));
+   ((CLabel*) WProp->GetChildByName ("label3"))->SetText (lxT ("P3 - L3"));
+   ((CLabel*) WProp->GetChildByName ("label4"))->SetText (lxT ("P4 - L4"));
+   ((CLabel*) WProp->GetChildByName ("label5"))->SetText (lxT ("P5 - C1"));
+   ((CLabel*) WProp->GetChildByName ("label6"))->SetText (lxT ("P6 - C2"));
+   ((CLabel*) WProp->GetChildByName ("label7"))->SetText (lxT ("P7 - C3"));
+   ((CLabel*) WProp->GetChildByName ("label8"))->SetText (lxT ("P8 - C4"));
+   ((CCombo*) WProp->GetChildByName ("combo8"))->SetEnable (true);
+   ((CCombo*) WProp->GetChildByName ("combo10"))->SetText ("4x4");
    break;
   case KT4x3:
-   ((CLabel*) WProp_keypad->GetChildByName ("label1"))->SetText (lxT ("P1 - L1"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label2"))->SetText (lxT ("P2 - L2"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label3"))->SetText (lxT ("P3 - L3"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label4"))->SetText (lxT ("P4 - L4"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label5"))->SetText (lxT ("P5 - C1"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label6"))->SetText (lxT ("P6 - C2"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label7"))->SetText (lxT ("P7 - C3"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label8"))->SetText (lxT ("P8 - NC"));
-   ((CCombo*) WProp_keypad->GetChildByName ("combo8"))->SetEnable (false);
-   ((CCombo*) WProp_keypad->GetChildByName ("combo10"))->SetText ("4x3");
+   ((CLabel*) WProp->GetChildByName ("label1"))->SetText (lxT ("P1 - L1"));
+   ((CLabel*) WProp->GetChildByName ("label2"))->SetText (lxT ("P2 - L2"));
+   ((CLabel*) WProp->GetChildByName ("label3"))->SetText (lxT ("P3 - L3"));
+   ((CLabel*) WProp->GetChildByName ("label4"))->SetText (lxT ("P4 - L4"));
+   ((CLabel*) WProp->GetChildByName ("label5"))->SetText (lxT ("P5 - C1"));
+   ((CLabel*) WProp->GetChildByName ("label6"))->SetText (lxT ("P6 - C2"));
+   ((CLabel*) WProp->GetChildByName ("label7"))->SetText (lxT ("P7 - C3"));
+   ((CLabel*) WProp->GetChildByName ("label8"))->SetText (lxT ("P8 - NC"));
+   ((CCombo*) WProp->GetChildByName ("combo8"))->SetEnable (false);
+   ((CCombo*) WProp->GetChildByName ("combo10"))->SetText ("4x3");
    break;
   case KT2x5:
-   ((CLabel*) WProp_keypad->GetChildByName ("label1"))->SetText (lxT ("P1 - L1"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label2"))->SetText (lxT ("P2 - L2"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label3"))->SetText (lxT ("P3 - C1"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label4"))->SetText (lxT ("P4 - C2"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label5"))->SetText (lxT ("P5 - C3"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label6"))->SetText (lxT ("P6 - C4"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label7"))->SetText (lxT ("P7 - C5"));
-   ((CLabel*) WProp_keypad->GetChildByName ("label8"))->SetText (lxT ("P8 - NC"));
-   ((CCombo*) WProp_keypad->GetChildByName ("combo8"))->SetEnable (false);
-   ((CCombo*) WProp_keypad->GetChildByName ("combo10"))->SetText ("2x5");
+   ((CLabel*) WProp->GetChildByName ("label1"))->SetText (lxT ("P1 - L1"));
+   ((CLabel*) WProp->GetChildByName ("label2"))->SetText (lxT ("P2 - L2"));
+   ((CLabel*) WProp->GetChildByName ("label3"))->SetText (lxT ("P3 - C1"));
+   ((CLabel*) WProp->GetChildByName ("label4"))->SetText (lxT ("P4 - C2"));
+   ((CLabel*) WProp->GetChildByName ("label5"))->SetText (lxT ("P5 - C3"));
+   ((CLabel*) WProp->GetChildByName ("label6"))->SetText (lxT ("P6 - C4"));
+   ((CLabel*) WProp->GetChildByName ("label7"))->SetText (lxT ("P7 - C5"));
+   ((CLabel*) WProp->GetChildByName ("label8"))->SetText (lxT ("P8 - NC"));
+   ((CCombo*) WProp->GetChildByName ("combo8"))->SetEnable (false);
+   ((CCombo*) WProp->GetChildByName ("combo10"))->SetText ("2x5");
    break;
   }
 
- ((CButton*) WProp_keypad->GetChildByName ("button1"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
- ((CButton*) WProp_keypad->GetChildByName ("button1"))->SetTag (1);
+ ((CButton*) WProp->GetChildByName ("button1"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
+ ((CButton*) WProp->GetChildByName ("button1"))->SetTag (1);
 
- ((CButton*) WProp_keypad->GetChildByName ("button2"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
+ ((CButton*) WProp->GetChildByName ("button2"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
 
- ((CCombo*) WProp_keypad->GetChildByName ("combo10"))->EvOnComboChange = EVONCOMBOCHANGE & CPWindow5::PropComboChange;
+ ((CCombo*) WProp->GetChildByName ("combo10"))->EvOnComboChange = EVONCOMBOCHANGE & CPWindow5::PropComboChange;
 }
 
 void
-cpart_keypad::ReadPropertiesWindow(void)
+cpart_keypad::ReadPropertiesWindow(CPWindow * WProp)
 {
- output_pins[0] = atoi (((CCombo*) WProp_keypad->GetChildByName ("combo1"))->GetText ());
- output_pins[1] = atoi (((CCombo*) WProp_keypad->GetChildByName ("combo2"))->GetText ());
- output_pins[2] = atoi (((CCombo*) WProp_keypad->GetChildByName ("combo3"))->GetText ());
- output_pins[3] = atoi (((CCombo*) WProp_keypad->GetChildByName ("combo4"))->GetText ());
- output_pins[4] = atoi (((CCombo*) WProp_keypad->GetChildByName ("combo5"))->GetText ());
- output_pins[5] = atoi (((CCombo*) WProp_keypad->GetChildByName ("combo6"))->GetText ());
- output_pins[6] = atoi (((CCombo*) WProp_keypad->GetChildByName ("combo7"))->GetText ());
- output_pins[7] = atoi (((CCombo*) WProp_keypad->GetChildByName ("combo8"))->GetText ());
+ output_pins[0] = atoi (((CCombo*) WProp->GetChildByName ("combo1"))->GetText ());
+ output_pins[1] = atoi (((CCombo*) WProp->GetChildByName ("combo2"))->GetText ());
+ output_pins[2] = atoi (((CCombo*) WProp->GetChildByName ("combo3"))->GetText ());
+ output_pins[3] = atoi (((CCombo*) WProp->GetChildByName ("combo4"))->GetText ());
+ output_pins[4] = atoi (((CCombo*) WProp->GetChildByName ("combo5"))->GetText ());
+ output_pins[5] = atoi (((CCombo*) WProp->GetChildByName ("combo6"))->GetText ());
+ output_pins[6] = atoi (((CCombo*) WProp->GetChildByName ("combo7"))->GetText ());
+ output_pins[7] = atoi (((CCombo*) WProp->GetChildByName ("combo8"))->GetText ());
 
- pull = !(((CCombo*) WProp_keypad->GetChildByName ("combo9"))->GetText ().compare ("UP") == 0);
+ pull = !(((CCombo*) WProp->GetChildByName ("combo9"))->GetText ().compare ("UP") == 0);
 
- String tps = ((CCombo*) WProp_keypad->GetChildByName ("combo10"))->GetText ();
+ lxString tps = ((CCombo*) WProp->GetChildByName ("combo10"))->GetText ();
 
  ComboChange (tps);
 
@@ -587,7 +590,7 @@ cpart_keypad::ReadPropertiesWindow(void)
 }
 
 void
-cpart_keypad::ComboChange(String value)
+cpart_keypad::ComboChange(lxString value)
 {
  if (!value.compare (lxT ("4x3")))
   {
@@ -602,3 +605,6 @@ cpart_keypad::ComboChange(String value)
    ChangeType (KT4x4);
   }
 }
+
+part_init("Keypad", cpart_keypad);
+

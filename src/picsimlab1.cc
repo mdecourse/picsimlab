@@ -38,6 +38,10 @@ CPWindow1 Window1;
 #include"picsimlab4.h"
 #include"picsimlab5.h"
 
+#ifdef __EMSCRIPTEN__
+#include<emscripten.h>
+#endif
+
 #ifdef _USE_PICSTARTP_
 extern char PROGDEVICE[100];
 #endif
@@ -45,24 +49,26 @@ char SERIALDEVICE[100];
 
 #ifdef _USE_PICSTARTP_
 //picstart plus
-int prog_init (void);
-int prog_loop (_pic * pic);
-int prog_end (void);
+int prog_init(void);
+int prog_loop(_pic * pic);
+int prog_end(void);
 #endif
 
 #ifdef _WIN_
 #define msleep(x) Sleep(x)
-void usleep(unsigned int usec)
+
+void
+usleep(unsigned int usec)
 {
-	HANDLE timer;
-	LARGE_INTEGER ft;
+ HANDLE timer;
+ LARGE_INTEGER ft;
 
-	ft.QuadPart = -(10 * (__int64)usec);
+ ft.QuadPart = -(10 * (__int64)usec);
 
-	timer = CreateWaitableTimer(NULL, TRUE, NULL);
-	SetWaitableTimer(timer, &ft, 0, NULL, NULL, 0);
-	WaitForSingleObject(timer, INFINITE);
-	CloseHandle(timer);
+ timer = CreateWaitableTimer (NULL, TRUE, NULL);
+ SetWaitableTimer (timer, &ft, 0, NULL, NULL, 0);
+ WaitForSingleObject (timer, INFINITE);
+ CloseHandle (timer);
 }
 #else
 #define msleep(x) usleep(x*1000)
@@ -73,11 +79,11 @@ void usleep(unsigned int usec)
 int crt;
 
 void
-CPWindow1::timer1_EvOnTime (CControl * control)
+CPWindow1::timer1_EvOnTime(CControl * control)
 {
  status.st[0] |= ST_T1;
 
-#ifdef _ONEWIN
+#ifdef _NOTHREAD
  if (timer1.GetOverTime () < 10)
   {
    label1.SetColor (0, 0, 0);
@@ -107,10 +113,10 @@ CPWindow1::timer1_EvOnTime (CControl * control)
 
  if (!tgo)
   tgo = 1; //thread sync
-};
+}
 
 void
-CPWindow1::thread1_EvThreadRun (CControl*)
+CPWindow1::thread1_EvThreadRun(CControl*)
 {
 
  do
@@ -134,7 +140,7 @@ CPWindow1::thread1_EvThreadRun (CControl*)
 }
 
 void
-CPWindow1::timer2_EvOnTime (CControl * control)
+CPWindow1::timer2_EvOnTime(CControl * control)
 {
  status.st[0] |= ST_T2;
  if (pboard != NULL)
@@ -161,10 +167,10 @@ CPWindow1::timer2_EvOnTime (CControl * control)
     }
   }
  status.st[0] &= ~ST_T2;
-};
+}
 
 void
-CPWindow1::draw1_EvMouseButtonPress (CControl * control, uint button, uint x, uint y, uint state)
+CPWindow1::draw1_EvMouseButtonPress(CControl * control, uint button, uint x, uint y, uint state)
 {
 
  x = x / scale;
@@ -172,10 +178,10 @@ CPWindow1::draw1_EvMouseButtonPress (CControl * control, uint button, uint x, ui
 
  pboard->EvMouseButtonPress (button, x, y, state);
 
-};
+}
 
 void
-CPWindow1::draw1_EvMouseButtonRelease (CControl * control, uint button, uint x, uint y, uint state)
+CPWindow1::draw1_EvMouseButtonRelease(CControl * control, uint button, uint x, uint y, uint state)
 {
 
  x = x / scale;
@@ -183,36 +189,39 @@ CPWindow1::draw1_EvMouseButtonRelease (CControl * control, uint button, uint x, 
 
  pboard->EvMouseButtonRelease (button, x, y, state);
 
-};
+}
 
 void
-CPWindow1::draw1_EvKeyboardPress (CControl * control, const uint key, const uint hkey, const uint mask)
+CPWindow1::draw1_EvKeyboardPress(CControl * control, const uint key, const uint hkey, const uint mask)
 {
  pboard->EvKeyPress (key, mask);
-};
+}
 
 void
-CPWindow1::draw1_EvKeyboardRelease (CControl * control, const uint key, const uint hkey, const uint mask)
+CPWindow1::draw1_EvKeyboardRelease(CControl * control, const uint key, const uint hkey, const uint mask)
 {
  pboard->EvKeyRelease (key, mask);
-};
+}
 
 void
-CPWindow1::_EvOnCreate (CControl * control)
+CPWindow1::_EvOnCreate(CControl * control)
 {
  char home[1024];
  lxFileName fn;
+ lxFileName fn_spare;
+
+ strncpy (home, (char*) lxGetUserDataDir (_T ("picsimlab")).char_str (), 1023);
+
 
  if (!create)
   {
    PATH = lxGetCwd ();
 
 #ifndef _WIN_
-   share = String (_SHARE_);
+   share = lxString (_SHARE_);
 #else
-   share = dirname (lxGetExecutablePath ()) + lxT ("/") + String (_SHARE_);
+   share = dirname (lxGetExecutablePath ()) + lxT ("/") + lxString (_SHARE_);
 #endif
-
 
 
    if (Application->Aargc == 2)
@@ -220,13 +229,57 @@ CPWindow1::_EvOnCreate (CControl * control)
      fn.Assign (Application->Aargv[1]);
      fn.MakeAbsolute ();
     }
+   else if ((Application->Aargc >= 3) && (Application->Aargc <= 5))
+    {
+     char fname[1200];
+
+     if (Application->Aargc >= 4)
+      {
+       fn.Assign (Application->Aargv[3]);
+       fn.MakeAbsolute ();
+      }
+     if (Application->Aargc == 5)
+      {
+       fn_spare.Assign (Application->Aargv[4]);
+       fn_spare.MakeAbsolute ();
+      }
+     lab = -1;
+     for (int i = 0; i < BOARDS_LAST; i++)
+      {
+       if (!strcmp (boards_list[i].name_, Application->Aargv[1]))
+        {
+         lab = i;
+         break;
+        }
+      }
+
+     if (lab != -1)
+      {
+       snprintf (fname, 1199, "%s/picsimlab.ini", home);
+       prefs.Clear ();
+       if (lxFileExists (fname))
+        {
+         if (prefs.LoadFromFile (fname))
+          {
+           saveprefs (lxT ("picsimlab_lab"), boards_list[lab].name_);
+           saveprefs (lxString (boards_list[lab].name_) + lxT ("_proc"), Application->Aargv[2]);
+           if (Application->Aargc == 5)
+            {
+             saveprefs (lxT ("spare_on"), lxT ("1"));
+            }
+           prefs.SaveToFile (fname);
+          }
+        }
+      }
+     else
+      {
+       Application->Aargc = 1;
+       printf ("PICSimLab: Unknown board %s !\n", Application->Aargv[1]);
+      }
+    }
   }
 
  //load options
-
-
- strncpy (home, (char*) lxGetUserDataDir (_T ("picsimlab")).char_str (), 1023);
-
  Configure (control, home);
 
  if (!create)
@@ -236,13 +289,31 @@ CPWindow1::_EvOnCreate (CControl * control)
     {
      LoadWorkspace (fn.GetFullPath ());
     }
+   else if ((Application->Aargc == 4) || (Application->Aargc == 5))
+    {
+     LoadHexFile (fn.GetFullPath ());
+     if (Application->Aargc == 5)
+      {
+       Window5.LoadConfig (fn_spare.GetFullPath ());
+      }
+    }
+
+   //board menu
+   for (int i = 0; i < BOARDS_LAST; i++)
+    {
+     MBoard[i].SetFOwner (this);
+     MBoard[i].SetName (itoa (i));
+     MBoard[i].SetText (boards_list[i].name);
+     MBoard[i].EvMenuActive = EVMENUACTIVE & CPWindow1::menu1_EvBoard;
+     menu1_Board.CreateChild (&MBoard[i]);
+    }
   }
  create++;
 
-};
+}
 
 void
-CPWindow1::Configure (CControl * control, const char * home)
+CPWindow1::Configure(CControl * control, const char * home)
 {
 
  char line[1024];
@@ -253,9 +324,8 @@ CPWindow1::Configure (CControl * control, const char * home)
 
  int i, j;
  int lc;
- float clk;
 
- String status;
+ lxString status;
 
  mcurun = 1;
  mcupwr = 1;
@@ -285,68 +355,50 @@ CPWindow1::Configure (CControl * control, const char * home)
        value = strtok (NULL, "\"");
        if ((name == NULL) || (value == NULL))continue;
 #ifndef _WIN_
-       if (!strcmp ("lser", name))strcpy (SERIALDEVICE, value);
+       if (!strcmp ("picsimlab_lser", name))strcpy (SERIALDEVICE, value);
 #ifdef _USE_PICSTARTP_      
-       if (!strcmp ("lprog", name))strcpy (PROGDEVICE, value);
+       if (!strcmp ("picsimlab_lprog", name))strcpy (PROGDEVICE, value);
 #endif      
 #else
-       if (!strcmp ("wser", name))strcpy (SERIALDEVICE, value);
+       if (!strcmp ("picsimlab_wser", name))strcpy (SERIALDEVICE, value);
 #ifdef _USE_PICSTARTP_      
-       if (!strcmp ("wprog", name))strcpy (PROGDEVICE, value);
+       if (!strcmp ("picsimlab_wprog", name))strcpy (PROGDEVICE, value);
 #endif      
 #endif
 
-       if (!strcmp (name, "lab"))
+       if (!strcmp (name, "picsimlab_lab"))
         {
-         sscanf (value, "%i", &i);
+         for (i = 0; i < BOARDS_LAST; i++)
+          {
+           if (!strcmp (boards_list[i].name_, value))
+            {
+             break;
+            }
+          }
 
          lab = i;
          lab_ = i;
 
          pboard = create_board (&lab, &lab_);
-
-         menu1_Microcontroller.DestroyChilds ();
-         String sdev = pboard->GetSupportedDevices ();
-         int f;
-         int dc = 0;
-         while (sdev.size () > 0)
-          {
-           f = sdev.find (lxT (","));
-           if (f < 0)break;
-           MMicro[dc].SetFOwner (this);
-           MMicro[dc].SetName ("Micro_" + itoa (dc + 1));
-           MMicro[dc].SetText (sdev.substr (0, f));
-           MMicro[dc].EvMenuActive = EVMENUACTIVE & CPWindow1::menu1_EvMicrocontroller;
-           menu1_Microcontroller.CreateChild (&MMicro[dc]);
-           MMicro[dc].SetVisible (true);
-           sdev = sdev.substr (f + 1, sdev.size () - f - 1);
-           dc++;
-          }
-
+         SetClock (2.0); //Default clock
 
 
         }
-       if (!strcmp (name, "clock"))
-        {
-         sscanf (value, "%f", &clk);
-         if (clk < 1)
-          {
-           combo1.SetText (String ().Format ("%2.1f", clk));
-          }
-         else
-          {
-           combo1.SetText (String ().Format ("%2.0f", clk));
-          }
-         //combo1_EvOnComboChange(control);
-         NSTEP = (int) (atof (combo1.GetText ()) * NSTEPKT);
-         NSTEPJ = NSTEP / JUMPSTEPS;
-         pboard->MSetFreq (NSTEP * NSTEPKF);
-        }
 
-       if (!strcmp (name, "debug"))
+       if (!strcmp (name, "picsimlab_debug"))
         {
          sscanf (value, "%i", &debug);
          togglebutton1.SetCheck (debug);
+        }
+
+       if (!strcmp (name, "picsimlab_debugt"))
+        {
+         sscanf (value, "%i", &debug_type);
+        }
+
+       if (!strcmp (name, "picsimlab_debugp"))
+        {
+         sscanf (value, "%hu", &debug_port);
         }
 
        if (!strcmp (name, "osc_on"))
@@ -359,12 +411,8 @@ CPWindow1::Configure (CControl * control, const char * home)
          sscanf (value, "%i", &spare_on);
         }
 
-       if (!strcmp (name, "spare_on"))
-        {
-         sscanf (value, "%i", &spare_on);
-        }
 
-       if (!strcmp (name, "position"))
+       if (!strcmp (name, "picsimlab_position"))
         {
          sscanf (value, "%i,%i", &i, &j);
          SetX (i);
@@ -372,14 +420,14 @@ CPWindow1::Configure (CControl * control, const char * home)
         }
 
 
-       if (!strcmp (name, "lpath"))
+       if (!strcmp (name, "picsimlab_lpath"))
         {
-         PATH = String (value, lxConvUTF8);
+         PATH = lxString (value, lxConvUTF8);
         }
 
-       if (!strcmp (name, "lfile"))
+       if (!strcmp (name, "picsimlab_lfile"))
         {
-         FNAME = String (value, lxConvUTF8);
+         FNAME = lxString (value, lxConvUTF8);
          if (FNAME.length () > 1)
           menu1_File_ReloadLast.SetEnable (1);
          else
@@ -394,14 +442,15 @@ CPWindow1::Configure (CControl * control, const char * home)
       }
     }
   }
- else
+
+ if (pboard == NULL)
   {
    printf ("Error open config file \"%s\"!\n", fname);
 
-   lab = 1; //default  
-   lab_ = 1; //default  
+   lab = 0; //default  
+   lab_ = 0; //default  
 
-   pboard = new cboard_1 ();
+   pboard = boards_list[0].bcreate ();
 
 #ifndef _WIN_   
    strcpy (SERIALDEVICE, "/dev/tnt2");
@@ -416,10 +465,29 @@ CPWindow1::Configure (CControl * control, const char * home)
 #endif
   }
 
- proc_ = pboard->proc;
+ menu1_Microcontroller.DestroyChilds ();
+ lxString sdev = pboard->GetSupportedDevices ();
+ int f;
+ int dc = 0;
+ while (sdev.size () > 0)
+  {
+   f = sdev.find (lxT (","));
+   if (f < 0)break;
+   MMicro[dc].SetFOwner (this);
+   MMicro[dc].SetName ("Micro_" + itoa (dc + 1));
+   MMicro[dc].SetText (sdev.substr (0, f));
+   MMicro[dc].EvMenuActive = EVMENUACTIVE & CPWindow1::menu1_EvMicrocontroller;
+   menu1_Microcontroller.CreateChild (&MMicro[dc]);
+   MMicro[dc].SetVisible (true);
+   sdev = sdev.substr (f + 1, sdev.size () - f - 1);
+   dc++;
 
- SetTitle (lxT ("PICSimLab - ") + String (boards_list[lab]) + lxT (" - ") + pboard->proc);
-
+   if (dc >= MAX_MIC)
+    {
+     printf ("PICSimLab: microcontroller menu only support %i entries!\n",MAX_MIC);
+     exit (-1);
+    }
+  }
 
 
  filedialog1.SetDir (PATH);
@@ -429,10 +497,10 @@ CPWindow1::Configure (CControl * control, const char * home)
 
  pboard->MSetSerial (SERIALDEVICE);
 
- sprintf (fname, "%s/mdump_%02i_%s.hex", home, lab, (const char *) pboard->proc.c_str ());
+ sprintf (fname, "%s/mdump_%s_%s.hex", home, boards_list[lab].name_, (const char *) pboard->GetProcessorName ().c_str ());
 
 
- switch (pboard->MInit (pboard->proc, fname, NSTEP * NSTEPKF))
+ switch (pboard->MInit (pboard->GetProcessorName (), fname, NSTEP * NSTEPKF))
   {
   case HEX_NFOUND:
    printf ("File not found!\n");
@@ -445,6 +513,10 @@ CPWindow1::Configure (CControl * control, const char * home)
 
  pboard->Reset ();
 
+ proc_ = pboard->GetProcessorName ();
+
+ SetTitle (lxT ("PICSimLab - ") + lxString (boards_list[lab].name) + lxT (" - ") + pboard->GetProcessorName ());
+
 
 #ifdef _USE_PICSTARTP_
  if (prog_init () >= 0)
@@ -452,7 +524,7 @@ CPWindow1::Configure (CControl * control, const char * home)
  else
   status = lxT ("PStart:Error");
 #else
- status = lxT (""); 
+ status = lxT ("");
 #endif
 
 
@@ -461,14 +533,19 @@ CPWindow1::Configure (CControl * control, const char * home)
 #else 
  if (debug)
   {
-   if (pboard->DebugInit () == 0)
-    statusbar1.SetField (1, status + lxT ("    Debug: On"));
+   int ret = pboard->DebugInit (debug_type);
+   if (ret < 0)
+    {
+     statusbar1.SetField (1, status + lxT ("Debug: Error"));
+    }
    else
-    statusbar1.SetField (1, status + lxT ("    Debug: Error"));
+    {
+     statusbar1.SetField (1, status + lxT ("Debug: ") + pboard->GetDebugName () + ":" + itoa (debug_port));
+    }
   }
  else
   {
-   statusbar1.SetField (1, status + lxT ("    Debug: Off"));
+   statusbar1.SetField (1, status + lxT ("Debug: Off"));
   }
 #endif
 
@@ -483,15 +560,25 @@ CPWindow1::Configure (CControl * control, const char * home)
 
  Window4.SetBaseTimer ();
 
- sprintf (fname, "%s/parts_%02i.pcf", home, lab);
+ sprintf (fname, "%s/parts_%s.pcf", home, boards_list[lab].name_);
  Window5.LoadConfig (fname);
+
+
+ if ((!pboard->GetProcessorName ().Cmp ("atmega328p")) || (!pboard->GetProcessorName ().Cmp ("atmega2560")))
+  {
+   menu1_Tools_ArduinoBootloader.SetEnable (true);
+  }
+ else
+  {
+   menu1_Tools_ArduinoBootloader.SetEnable (false);
+  }
 
 }
 
 //Change  frequency
 
 void
-CPWindow1::combo1_EvOnComboChange (CControl * control)
+CPWindow1::combo1_EvOnComboChange(CControl * control)
 {
 
  NSTEP = (int) (atof (combo1.GetText ()) * NSTEPKT);
@@ -503,10 +590,10 @@ CPWindow1::combo1_EvOnComboChange (CControl * control)
 
 
  Application->ProcessEvents ();
-};
+}
 
 void
-CPWindow1::saveprefs (String name, String value)
+CPWindow1::saveprefs(lxString name, lxString value)
 {
  char line[1024];
  char *pname;
@@ -522,7 +609,7 @@ CPWindow1::saveprefs (String name, String value)
 
    if ((pname == NULL) || (pvalue == NULL))continue;
 
-   if (String (pname) == name)
+   if (lxString (pname) == name)
     {
      prefs.SetLine (name + lxT ("\t= \"") + value + lxT ("\""), lc);
 
@@ -533,7 +620,7 @@ CPWindow1::saveprefs (String name, String value)
 }
 
 void
-CPWindow1::_EvOnDestroy (CControl * control)
+CPWindow1::_EvOnDestroy(CControl * control)
 {
  char home[1024];
  char fname[1280];
@@ -549,7 +636,7 @@ CPWindow1::_EvOnDestroy (CControl * control)
   {
    msleep (1);
    Application->ProcessEvents ();
-  };
+  }
  thread1.Destroy ();
 
 
@@ -563,25 +650,26 @@ CPWindow1::_EvOnDestroy (CControl * control)
 
 
 
- saveprefs (lxT ("lab"), String ().Format ("%i", lab));
- saveprefs (lxT ("clock"), combo1.GetText ());
- saveprefs (lxT ("debug"), itoa (debug));
- saveprefs (lxT ("position"), itoa (GetX ()) + lxT (",") + itoa (GetY ()));
+ saveprefs (lxT ("picsimlab_lab"), boards_list[lab].name_);
+ saveprefs (lxT ("picsimlab_debug"), itoa (debug));
+ saveprefs (lxT ("picsimlab_debugt"), itoa (debug_type));
+ saveprefs (lxT ("picsimlab_debugp"), itoa (debug_port));
+ saveprefs (lxT ("picsimlab_position"), itoa (GetX ()) + lxT (",") + itoa (GetY ()));
  saveprefs (lxT ("osc_on"), itoa (pboard->GetUseOscilloscope ()));
  saveprefs (lxT ("spare_on"), itoa (pboard->GetUseSpareParts ()));
 #ifndef _WIN_
- saveprefs (lxT ("lser"), SERIALDEVICE);
+ saveprefs (lxT ("picsimlab_lser"), SERIALDEVICE);
 #ifdef _USE_PICSTARTP_    
- saveprefs (lxT ("lprog"), PROGDEVICE);
+ saveprefs (lxT ("picsimlab_lprog"), PROGDEVICE);
 #endif    
 #else
- saveprefs ("wser", SERIALDEVICE);
+ saveprefs ("picsimlab_wser", SERIALDEVICE);
 #ifdef _USE_PICSTARTP_    
- saveprefs ("wprog", PROGDEVICE);
+ saveprefs ("picsimlab_wprog", PROGDEVICE);
 #endif
 #endif
- saveprefs (lxT ("lpath"), PATH);
- saveprefs (lxT ("lfile"), FNAME);
+ saveprefs (lxT ("picsimlab_lpath"), PATH);
+ saveprefs (lxT ("picsimlab_lfile"), FNAME);
 
  pboard->WritePreferences ();
 
@@ -592,7 +680,7 @@ CPWindow1::_EvOnDestroy (CControl * control)
 
  //write memory
 
- sprintf (fname, "%s/mdump_%02i_%s.hex", home, lab_, (const char*) proc_.c_str ());
+ sprintf (fname, "%s/mdump_%s_%s.hex", home, boards_list[lab_].name_, (const char*) proc_.c_str ());
 
  pboard->MDumpMemory (fname);
 
@@ -600,7 +688,8 @@ CPWindow1::_EvOnDestroy (CControl * control)
  pboard->MEnd ();
 
 
- sprintf (fname, "%s/parts_%02i.pcf", home, lab_);
+ sprintf (fname, "%s/parts_%s.pcf", home, boards_list[lab_].name_);
+
  Window5.SaveConfig (fname);
  Window5.DeleteParts ();
 
@@ -611,93 +700,131 @@ CPWindow1::_EvOnDestroy (CControl * control)
  GetX ();
  GetY ();
 
-};
-
-void
-CPWindow1::menu1_File_LoadHex_EvMenuActive (CControl * control)
-{
- pa = mcupwr;
- mcupwr = 0;
- filedialog1.Run ();
 }
 
 void
-CPWindow1::filedialog1_EvOnClose (int retId)
+CPWindow1::menu1_File_LoadHex_EvMenuActive(CControl * control)
 {
- if (retId)
+#ifdef __EMSCRIPTEN__
+   EM_ASM_ ({toggle_load_panel();});
+#else		   
+ filedialog1.SetType (lxFD_OPEN | lxFD_CHANGE_DIR);
+ filedialog1.Run ();
+#endif 
+}
+
+void
+CPWindow1::menu1_File_SaveHex_EvMenuActive(CControl * control)
+{
+ pa = mcupwr;
+ filedialog1.SetType (lxFD_SAVE | lxFD_CHANGE_DIR);
+#ifdef __EMSCRIPTEN__
+ filedialog1.SetDir("/tmp/");
+ filedialog1.SetFileName("untitled.hex");
+ filedialog1_EvOnClose(1);
+#else 
+ filedialog1.Run ();
+#endif 
+}
+
+void
+CPWindow1::filedialog1_EvOnClose(int retId)
+{
+ pa = mcupwr;
+ mcupwr = 0;
+
+ while (status.st[1] & ST_TH)usleep (100); //wait thread
+
+ if (retId && (filedialog1.GetType () == (lxFD_OPEN | lxFD_CHANGE_DIR)))
   {
-   pboard->MEnd ();
-   pboard->MSetSerial (SERIALDEVICE);
 
-   switch (pboard->MInit (pboard->proc, filedialog1.GetFileName ().char_str (), NSTEP * NSTEPKF))
-    {
-    case HEX_NFOUND:
-     Message (lxT ("File not found!"));
-     mcurun = 0;
-     break;
-    case HEX_CHKSUM:
-     Message (lxT ("File checksum error!"));
-     pboard->MEraseFlash ();
-     mcurun = 0;
-     break;
-    case 0:
-     mcurun = 1;
-     break;
-    }
-
-
-   pboard->Reset ();
-
-
-   if (mcurun)
-    SetTitle (lxT ("PICSimLab - ") + String (boards_list[lab]) + lxT (" - ") + pboard->proc + lxT (" - ") + basename (filedialog1.GetFileName ()));
-   else
-    SetTitle (lxT ("PICSimLab - ") + String (boards_list[lab]) + lxT (" - ") + pboard->proc);
-
-
+   LoadHexFile (filedialog1.GetFileName ());
 
    PATH = filedialog1.GetDir ();
    FNAME = filedialog1.GetFileName ();
    menu1_File_ReloadLast.SetEnable (1);
   }
+
+ if (retId && (filedialog1.GetType () == (lxFD_SAVE | lxFD_CHANGE_DIR)))
+  {
+   pboard->MDumpMemory (filedialog1.GetFileName ());
+#ifdef __EMSCRIPTEN__
+   EM_ASM_ ({
+            var filename = UTF8ToString ($0);
+            var buf = FS.readFile (filename);
+            var blob = new Blob ([buf],
+             {
+              "type" : "application/octet-stream" });
+            var text = URL.createObjectURL (blob);
+
+            var element = document.createElement ('a');
+            element.setAttribute ('href', text);
+            element.setAttribute ('download', filename);
+
+            element.style.display = 'none';
+            document.body.appendChild (element);
+
+            element.click ();
+
+            document.body.removeChild (element);
+            URL.revokeObjectURL (text);
+   }, filedialog1.GetFileName ().c_str ());
+#endif 
+  }
+
  mcupwr = pa;
 }
 
 void
-CPWindow1::menu1_File_Exit_EvMenuActive (CControl * control)
+CPWindow1::menu1_File_Exit_EvMenuActive(CControl * control)
 {
  WDestroy ();
-};
+}
 
 void
-CPWindow1::menu1_Help_Contents_EvMenuActive (CControl * control)
+CPWindow1::menu1_Help_Contents_EvMenuActive(CControl * control)
 {
 #ifdef EXT_BROWSER
  //lxLaunchDefaultBrowser(lxT("file://")+share + lxT ("docs/picsimlab.html"));
- lxLaunchDefaultBrowser(lxT("https://lcgamboa.github.io/picsimlab/"));
+ lxLaunchDefaultBrowser (lxT ("https://lcgamboa.github.io/picsimlab/"));
 #else 
  Window2.html1.SetLoadFile (share + lxT ("docs/picsimlab.html"));
  Window2.Show ();
 #endif 
-};
+}
 
 void
-CPWindow1::menu1_Help_About_EvMenuActive (CControl * control)
+CPWindow1::menu1_Help_Board_EvMenuActive(CControl * control)
 {
- Message (lxT ("Developed by L.C. Gamboa\n <lcgamboa@yahoo.com>\n Version: ") + String (lxT (_VERSION_)));
-};
+ lxString bname = lxString (boards_list[lab].name_).substr (0, 12);
+
+ lxLaunchDefaultBrowser (lxT ("https://lcgamboa.github.io/picsimlab/Features_Board_") + bname + lxT (".html"));
+}
 
 void
-CPWindow1::menu1_Help_Examples_EvMenuActive (CControl * control)
+CPWindow1::menu1_Help_About_Board_EvMenuActive(CControl * control)
+{
+ Message_sz (lxT ("Board ") + lxString (boards_list[lab].name) + lxT ("\nDeveloped by ") + pboard->GetAboutInfo (), 400, 200);
+}
+
+void
+CPWindow1::menu1_Help_About_PICSimLab_EvMenuActive(CControl * control)
+{
+ Message_sz (lxT ("Developed by L.C. Gamboa\n <lcgamboa@yahoo.com>\n Version: ") + lxString (lxT (_VERSION_)), 400, 200);
+}
+
+void
+CPWindow1::menu1_Help_Examples_EvMenuActive(CControl * control)
 {
 
- #ifdef EXT_BROWSER
+#ifdef EXT_BROWSER_EXAMPLES
  //lxLaunchDefaultBrowser(lxT("file://")+share + lxT ("docs/picsimlab.html"));
- lxLaunchDefaultBrowser(lxT("https://lcgamboa.github.io/picsimlab/examples/examples_index.html#board_"+ itoa (lab) + lxT ("_") + pboard->proc ));
+ lxLaunchDefaultBrowser (lxT ("https://lcgamboa.github.io/picsimlab_examples/examples/examples_index.html#board_" + lxString (boards_list[lab].name_) + lxT ("_") + pboard->GetProcessorName ()));
+ WDestroy ();
 #else 
  OldPath = filedialog2.GetDir ();
 
- filedialog2.SetDir (share + lxT ("/docs/hex/board_") + itoa (lab) + lxT ("/") + pboard->proc + lxT ("/"));
+ filedialog2.SetDir (share + lxT ("/docs/hex/board_") + lxString (boards_list[lab].name_) + lxT ("/") + pboard->GetProcessorName () + lxT ("/"));
 
  menu1_File_LoadWorkspace_EvMenuActive (control);
 #endif
@@ -707,7 +834,7 @@ CPWindow1::menu1_Help_Examples_EvMenuActive (CControl * control)
 //Resize
 
 void
-CPWindow1::_EvOnShow (CControl * control)
+CPWindow1::_EvOnShow(CControl * control)
 {
  double scalex, scaley;
 
@@ -757,13 +884,13 @@ CPWindow1::_EvOnShow (CControl * control)
 }
 
 void
-CPWindow1::menu1_File_Configure_EvMenuActive (CControl * control)
+CPWindow1::menu1_File_Configure_EvMenuActive(CControl * control)
 {
  Window3.ShowExclusive ();
-};
+}
 
 void
-CPWindow1::menu1_File_ReloadLast_EvMenuActive (CControl * control)
+CPWindow1::LoadHexFile(lxString fname)
 {
  int pa;
 
@@ -776,12 +903,12 @@ CPWindow1::menu1_File_ReloadLast_EvMenuActive (CControl * control)
   {
    msleep (1);
    Application->ProcessEvents ();
-  };
+  }
 
  pboard->MEnd ();
  pboard->MSetSerial (SERIALDEVICE);
 
- switch (pboard->MInit (pboard->proc, FNAME.char_str (), NSTEP * NSTEPKF))
+ switch (pboard->MInit (pboard->GetProcessorName (), fname.char_str (), NSTEP * NSTEPKF))
   {
   case HEX_NFOUND:
    Message (lxT ("File not found!"));
@@ -801,46 +928,49 @@ CPWindow1::menu1_File_ReloadLast_EvMenuActive (CControl * control)
 
 
  if (mcurun)
-  SetTitle (lxT ("PICSimLab - ") + String (boards_list[lab]) + lxT (" - ") + pboard->proc + lxT (" - ") + basename (filedialog1.GetFileName ()));
+  SetTitle (lxT ("PICSimLab - ") + lxString (boards_list[lab].name) + lxT (" - ") + pboard->GetProcessorName () + lxT (" - ") + basename (filedialog1.GetFileName ()));
  else
-  SetTitle (lxT ("PICSimLab - ") + String (boards_list[lab]) + lxT (" - ") + pboard->proc);
-
-
+  SetTitle (lxT ("PICSimLab - ") + lxString (boards_list[lab].name) + lxT (" - ") + pboard->GetProcessorName ());
 
 
  mcupwr = pa;
  timer1.SetRunState (1);
-
-};
+}
 
 void
-CPWindow1::board_Event (CControl * control)
+CPWindow1::menu1_File_ReloadLast_EvMenuActive(CControl * control)
+{
+ LoadHexFile (FNAME);
+}
+
+void
+CPWindow1::board_Event(CControl * control)
 {
  pboard->board_Event (control);
-};
+}
 
 void
-CPWindow1::menu1_Modules_Oscilloscope_EvMenuActive (CControl * control)
+CPWindow1::menu1_Modules_Oscilloscope_EvMenuActive(CControl * control)
 {
  pboard->SetUseOscilloscope (1);
  Window4.Show ();
  Window4.timer1.SetRunState (1);
-};
+}
 
 board *
-CPWindow1::GetBoard (void)
+CPWindow1::GetBoard(void)
 {
  return pboard;
 }
 
 void
-CPWindow1::SetCpuState (unsigned char cs)
+CPWindow1::SetCpuState(unsigned char cs)
 {
  cpustate = cs;
 }
 
 void
-CPWindow1::menu1_Modules_Spareparts_EvMenuActive (CControl * control)
+CPWindow1::menu1_Modules_Spareparts_EvMenuActive(CControl * control)
 {
 
 
@@ -849,41 +979,41 @@ CPWindow1::menu1_Modules_Spareparts_EvMenuActive (CControl * control)
  Window5.timer1.SetRunState (1);
  pboard->Reset ();
 
-};
+}
 
 
 //Change board
 
 void
-CPWindow1::menu1_EvBoard (CControl * control)
+CPWindow1::menu1_EvBoard(CControl * control)
 {
  lab_ = lab;
- lab = (int) (atof (((CItemMenu*) control)->GetText ()));
+ lab = atoi (((CItemMenu*) control)->GetName ());
 
  FNAME = lxT (" ");
  _EvOnDestroy (control);
  _EvOnCreate (control);
  _EvOnShow (control);
-};
+}
 
 //change microcontroller
 
 void
-CPWindow1::menu1_EvMicrocontroller (CControl * control)
+CPWindow1::menu1_EvMicrocontroller(CControl * control)
 {
- proc_ = pboard->proc;
- pboard->proc = ((CItemMenu*) control)->GetText ();
+ proc_ = pboard->GetProcessorName ();
+ pboard->SetProcessorName (((CItemMenu*) control)->GetText ());
 
- SetTitle (lxT ("PICSimLab - ") + String (boards_list[lab]) + lxT (" - ") + pboard->proc);
+ SetTitle (lxT ("PICSimLab - ") + lxString (boards_list[lab].name) + lxT (" - ") + pboard->GetProcessorName ());
 
  FNAME = lxT (" ");
  _EvOnDestroy (control);
  _EvOnCreate (control);
  _EvOnShow (control);
-};
+}
 
 void
-CPWindow1::togglebutton1_EvOnToggleButton (CControl * control)
+CPWindow1::togglebutton1_EvOnToggleButton(CControl * control)
 {
  int osc_on = pboard->GetUseOscilloscope ();
  int spare_on = pboard->GetUseSpareParts ();
@@ -898,23 +1028,40 @@ CPWindow1::togglebutton1_EvOnToggleButton (CControl * control)
  if (spare_on) menu1_Modules_Spareparts_EvMenuActive (this);
 
 
-};
+}
 
 void
-CPWindow1::menu1_File_SaveWorkspace_EvMenuActive (CControl * control)
+CPWindow1::menu1_File_SaveWorkspace_EvMenuActive(CControl * control)
 {
  filedialog2.SetType (lxFD_SAVE | lxFD_CHANGE_DIR);
+#ifdef __EMSCRIPTEN__
+ filedialog2.SetDir("/tmp/");
+ filedialog2.SetFileName("untitled.pzw");
+ filedialog2_EvOnClose(1);
+#else 
  filedialog2.Run ();
-};
+#endif 
+}
+
+//legacy format support before 0.8.2
+static const char old_board_names[6][20] = {"Breadboard", "McLab1", "K16F", "McLab2", "PICGenios", "Arduino_Uno"};
 
 void
-CPWindow1::LoadWorkspace (String fnpzw)
+CPWindow1::LoadWorkspace(lxString fnpzw)
 {
  char home[1024];
  char fzip[1280];
 
- if ((!lxFileExists (fnpzw)) || (!fnpzw.Contains (".pzw")))return;
-
+ if (!lxFileExists (fnpzw))
+  {
+   printf ("PICSimLab: file %s not found!\n", (const char *) fnpzw.c_str ());
+   return;
+  }
+ if (!fnpzw.Contains (".pzw"))
+  {
+   printf ("PICSimLab: file %s is not a .pzw file!\n", (const char *) fnpzw.c_str ());
+   return;
+  }
  //write options
  strncpy (fzip, (char*) lxGetTempDir (_T ("picsimlab")).char_str (), 1023);
  strncat (fzip, "/", 1023);
@@ -929,11 +1076,17 @@ CPWindow1::LoadWorkspace (String fnpzw)
  _EvOnDestroy (this);
 
  snprintf (fzip, 1279, "%s/picsimlab.ini", home);
- CStringList prefsw;
+ lxStringList prefsw;
  prefsw.Clear ();
  int lc;
  char * value;
  char * name;
+#ifdef LEGACY081 
+ char name_[100];
+ char value_[400];
+ int llab = 0;
+#endif
+
  char line[1024];
  if (prefsw.LoadFromFile (fzip))
   {
@@ -944,7 +1097,136 @@ CPWindow1::LoadWorkspace (String fnpzw)
      strtok (NULL, " ");
      value = strtok (NULL, "\"");
      if ((name == NULL) || (value == NULL))continue;
+#ifndef LEGACY081
      saveprefs (name, value);
+#else     
+     strncpy (name_, name, 99);
+     strncpy (value_, value, 399);
+
+     //legacy mode compatibility
+     if (!strcmp (name_, "lab"))
+      {
+       char oldname[1500];
+
+       strcpy (name_, "picsimlab_lab");
+       sscanf (value_, "%i", &llab);
+
+       strcpy (value_, old_board_names[llab]);
+
+       snprintf (oldname, 1499, "%sparts_%02i.pcf", home, llab);
+
+       if (lxFileExists (oldname))
+        {
+         char newname[1500];
+         snprintf (newname, 1499, "%sparts_%s.pcf", home, old_board_names[llab]);
+         lxRenameFile (oldname, newname);
+        }
+      }
+     if (!strcmp (name_, "debug"))
+      {
+       strcpy (name_, "picsimlab_debug");
+      }
+     if (!strcmp (name_, "position"))
+      {
+       strcpy (name_, "picsimlab_position");
+      }
+     if (!strcmp (name_, "lfile"))
+      {
+       strcpy (name_, "picsimlab_lfile");
+      }
+     if (!strcmp (name_, "clock"))
+      {
+       sprintf (name_, "%s_clock", old_board_names[llab]);
+      }
+     if (!strcmp (name_, "p0_proc"))
+      {
+       sprintf (name_, "%s_proc", old_board_names[0]);
+
+       char oldname[1500];
+       char newname[1500];
+       snprintf (oldname, 1499, "%smdump_00_%s.hex", home, value);
+       snprintf (newname, 1499, "%smdump_%s_%s.hex", home, old_board_names[0], value);
+       lxRenameFile (oldname, newname);
+      }
+     if (!strcmp (name_, "p1_proc"))
+      {
+       sprintf (name_, "%s_proc", old_board_names[1]);
+
+       char oldname[1500];
+       char newname[1500];
+       snprintf (oldname, 1499, "%smdump_01_%s.hex", home, value);
+       snprintf (newname, 1499, "%smdump_%s_%s.hex", home, old_board_names[1], value);
+       lxRenameFile (oldname, newname);
+      }
+     if (!strcmp (name_, "p2_proc"))
+      {
+       sprintf (name_, "%s_proc", old_board_names[2]);
+
+       char oldname[1500];
+       char newname[1500];
+       snprintf (oldname, 1499, "%smdump_02_%s.hex", home, value);
+       snprintf (newname, 1499, "%smdump_%s_%s.hex", home, old_board_names[2], value);
+       lxRenameFile (oldname, newname);
+      }
+     if (!strcmp (name_, "p3_proc"))
+      {
+       sprintf (name_, "%s_proc", old_board_names[3]);
+
+       char oldname[1500];
+       char newname[1500];
+       snprintf (oldname, 1499, "%smdump_03_%s.hex", home, value);
+       snprintf (newname, 1499, "%smdump_%s_%s.hex", home, old_board_names[3], value);
+       lxRenameFile (oldname, newname);
+      }
+     if (!strcmp (name_, "p4_proc"))
+      {
+       sprintf (name_, "%s_proc", old_board_names[4]);
+
+       char oldname[1500];
+       char newname[1500];
+       snprintf (oldname, 1499, "%smdump_04_%s.hex", home, value);
+       snprintf (newname, 1499, "%smdump_%s_%s.hex", home, old_board_names[4], value);
+       lxRenameFile (oldname, newname);
+      }
+     if (!strcmp (name_, "p5_proc"))
+      {
+       sprintf (name_, "%s_proc", old_board_names[5]);
+
+       char oldname[1500];
+       char newname[1500];
+       snprintf (oldname, 1499, "%smdump_05_%s.hex", home, value);
+       snprintf (newname, 1499, "%smdump_%s_%s.hex", home, old_board_names[5], value);
+       lxRenameFile (oldname, newname);
+      }
+
+     char * ptr;
+     if ((ptr = strstr (name, "p0_")))
+      {
+       sprintf (name_, "%s_%s", old_board_names[0], ptr + 3);
+      }
+     if ((ptr = strstr (name, "p1_")))
+      {
+       sprintf (name_, "%s_%s", old_board_names[1], ptr + 3);
+      }
+     if ((ptr = strstr (name, "p2_")))
+      {
+       sprintf (name_, "%s_%s", old_board_names[2], ptr + 3);
+      }
+     if ((ptr = strstr (name, "p3_")))
+      {
+       sprintf (name_, "%s_%s", old_board_names[3], ptr + 3);
+      }
+     if ((ptr = strstr (name, "p4_")))
+      {
+       sprintf (name_, "%s_%s", old_board_names[4], ptr + 3);
+      }
+     if ((ptr = strstr (name, "p5_")))
+      {
+       sprintf (name_, "%s_%s", old_board_names[5], ptr + 3);
+      }
+
+     saveprefs (name_, value_);
+#endif     
     }
   }
  prefs.SaveToFile (fzip);
@@ -957,8 +1239,8 @@ CPWindow1::LoadWorkspace (String fnpzw)
  if (lxFileExists (fzip))
   {
 #ifdef EXT_BROWSER
-   lxLaunchDefaultBrowser(lxT("file://")+String(fzip));
- //lxLaunchDefaultBrowser(lxT("https://lcgamboa.github.io/picsimlab/"));
+   lxLaunchDefaultBrowser (lxT ("file://") + lxString (fzip));
+   //lxLaunchDefaultBrowser(lxT("https://lcgamboa.github.io/picsimlab/"));
 #else    
    Window2.html1.SetLoadFile (fzip);
    Window2.Show ();
@@ -970,7 +1252,7 @@ CPWindow1::LoadWorkspace (String fnpzw)
    if (lxFileExists (fzip))
     {
 #ifdef EXT_BROWSER
-     lxLaunchDefaultBrowser(lxT("file://")+String(fzip));
+     lxLaunchDefaultBrowser (lxT ("file://") + lxString (fzip));
      //lxLaunchDefaultBrowser(lxT("https://lcgamboa.github.io/picsimlab/"));
 #else      
      Window2.html1.SetLoadFile (fzip);
@@ -978,20 +1260,21 @@ CPWindow1::LoadWorkspace (String fnpzw)
 #endif     
     }
   }
-
- //FIXME RemoveDir (home);
 }
 
 void
-CPWindow1::menu1_File_LoadWorkspace_EvMenuActive (CControl * control)
+CPWindow1::menu1_File_LoadWorkspace_EvMenuActive(CControl * control)
 {
+#ifdef __EMSCRIPTEN__
+   EM_ASM_ ({toggle_load_panel();});
+#else		   
  filedialog2.SetType (lxFD_OPEN | lxFD_CHANGE_DIR);
  filedialog2.Run ();
-
+#endif
 }
 
 void
-CPWindow1::filedialog2_EvOnClose (int retId)
+CPWindow1::filedialog2_EvOnClose(int retId)
 {
  if (retId && (filedialog2.GetType () == (lxFD_OPEN | lxFD_CHANGE_DIR)))
   {
@@ -1008,12 +1291,14 @@ CPWindow1::filedialog2_EvOnClose (int retId)
    char home[1024];
    char fname[1280];
 
+#ifndef __EMSCRIPTEN__
    if (lxFileExists (filedialog2.GetFileName ()))
     {
 
-     if (!Dialog (String ("Overwriting file: ") + basename (filedialog2.GetFileName ()) + "?"))
+     if (!Dialog (lxString ("Overwriting file: ") + basename (filedialog2.GetFileName ()) + "?"))
       return;
     }
+#endif
 
    //write options
 
@@ -1030,13 +1315,14 @@ CPWindow1::filedialog2_EvOnClose (int retId)
 
    snprintf (fname, 1279, "%s/picsimlab.ini", home);
    prefs.Clear ();
-   saveprefs (lxT ("lab"), String ().Format ("%i", lab));
-   saveprefs (lxT ("clock"), combo1.GetText ());
-   saveprefs (lxT ("debug"), itoa (debug));
-   saveprefs (lxT ("position"), itoa (GetX ()) + lxT (",") + itoa (GetY ()));
+   saveprefs (lxT ("picsimlab_lab"), boards_list[lab].name_);
+   saveprefs (lxT ("picsimlab_debug"), itoa (debug));
+   saveprefs (lxT ("picsimlab_debugt"), itoa (debug_type));
+   saveprefs (lxT ("picsimlab_debugp"), itoa (debug_port));
+   saveprefs (lxT ("picsimlab_position"), itoa (GetX ()) + lxT (",") + itoa (GetY ()));
    saveprefs (lxT ("osc_on"), itoa (pboard->GetUseOscilloscope ()));
    saveprefs (lxT ("spare_on"), itoa (pboard->GetUseSpareParts ()));
-   saveprefs (lxT ("lfile"), lxT (" "));
+   saveprefs (lxT ("picsimlab_lfile"), lxT (" "));
 
    pboard->WritePreferences ();
 
@@ -1050,14 +1336,14 @@ CPWindow1::filedialog2_EvOnClose (int retId)
    prefs.SaveToFile (fname);
 
    //write memory
-   snprintf (fname, 1279, "%s/mdump_%02i_%s.hex", home, lab_, (const char*) proc_.c_str ());
+   snprintf (fname, 1279, "%s/mdump_%s_%s.hex", home, boards_list[lab_].name_, (const char*) proc_.c_str ());
 
    pboard->MDumpMemory (fname);
 
    if (pboard->GetUseSpareParts ())
     {
 
-     snprintf (fname, 1279, "%s/parts_%02i.pcf", home, lab_);
+     snprintf (fname, 1279, "%s/parts_%s.pcf", home, boards_list[lab_].name_);
      Window5.SaveConfig (fname);
     }
 
@@ -1070,12 +1356,36 @@ CPWindow1::filedialog2_EvOnClose (int retId)
    snprintf (fname, 1279, "%s/picsimlab.ini", home);
    prefs.Clear ();
    prefs.LoadFromFile (fname);
+
+#ifdef __EMSCRIPTEN__
+   EM_ASM_ ({
+            var filename = UTF8ToString ($0);
+            var buf = FS.readFile (filename);
+            var blob = new Blob ([buf],
+             {
+              "type" : "application/octet-stream" });
+            var text = URL.createObjectURL (blob);
+
+            var element = document.createElement ('a');
+            element.setAttribute ('href', text);
+            element.setAttribute ('download', filename);
+
+            element.style.display = 'none';
+            document.body.appendChild (element);
+
+            element.click ();
+
+            document.body.removeChild (element);
+            URL.revokeObjectURL (text);
+   }, filedialog2.GetFileName ().c_str ());
+#endif 
+
   }
 
 }
 
 void
-CPWindow1::menu1_Tools_SerialTerm_EvMenuActive (CControl * control)
+CPWindow1::menu1_Tools_SerialTerm_EvMenuActive(CControl * control)
 {
 #ifdef _WIN_  
  lxExecute (share + lxT ("/../tools/cutecom/cutecom.exe"));
@@ -1083,10 +1393,10 @@ CPWindow1::menu1_Tools_SerialTerm_EvMenuActive (CControl * control)
 
  lxExecute ("cutecom", lxEXEC_MAKE_GROUP_LEADER);
 #endif  
-};
+}
 
 void
-CPWindow1::menu1_Tools_SerialRemoteTank_EvMenuActive (CControl * control)
+CPWindow1::menu1_Tools_SerialRemoteTank_EvMenuActive(CControl * control)
 {
 #ifdef _WIN_  
  lxExecute (share + lxT ("/../srtank.exe"));
@@ -1094,17 +1404,114 @@ CPWindow1::menu1_Tools_SerialRemoteTank_EvMenuActive (CControl * control)
 
  lxExecute ("srtank", lxEXEC_MAKE_GROUP_LEADER);
 #endif  
-};
+}
 
 void
-CPWindow1::menu1_Tools_Esp8266ModemSimulator_EvMenuActive (CControl * control)
+CPWindow1::menu1_Tools_Esp8266ModemSimulator_EvMenuActive(CControl * control)
 {
 #ifdef _WIN_  
  lxExecute (share + lxT ("/../espmsim.exe"));
 #else
  lxExecute ("espmsim", lxEXEC_MAKE_GROUP_LEADER);
 #endif  
-};
+}
+
+void
+CPWindow1::menu1_Tools_ArduinoBootloader_EvMenuActive(CControl * control)
+{
+ LoadHexFile (share + "bootloaders/arduino_" + pboard->GetProcessorName () + ".hex");
+}
+
+void
+CPWindow1::Set_mcudbg(int pd)
+{
+ mcudbg = pd;
+
+ if (mcudbg)
+  {
+   SetJUMPSTEPS (0);
+  }
+ else
+  {
+   SetJUMPSTEPS (DEFAULTJS);
+  }
+}
+
+void
+CPWindow1::SetJUMPSTEPS(int js)
+{
+ JUMPSTEPS = js;
+ if (JUMPSTEPS)
+  {
+   NSTEPJ = NSTEP / JUMPSTEPS;
+  }
+ else
+  {
+   NSTEPJ = NSTEP;
+  }
+}
+
+void
+CPWindow1::SetClock(float clk)
+{
+ if (clk < 1)
+  {
+   combo1.SetText (lxString ().Format ("%2.1f", clk));
+  }
+ else
+  {
+   combo1.SetText (lxString ().Format ("%2.0f", clk));
+  }
+
+ NSTEP = (int) (atof (combo1.GetText ()) * NSTEPKT);
+ NSTEPJ = NSTEP / JUMPSTEPS;
+ pboard->MSetFreq (NSTEP * NSTEPKF);
+}
+
+float
+CPWindow1::GetClock(void)
+{
+ return atof (combo1.GetText ());
+}
 
 
 
+#ifdef __EMSCRIPTEN__
+extern "C"
+{
+
+ void
+ file_ready(const char *fname)
+ {
+  if (strstr (fname, ".pzw"))
+   {
+    printf ("Loading .pzw...\n");
+    Window1.filedialog2.SetType (lxFD_OPEN | lxFD_CHANGE_DIR);
+    Window1.filedialog2.SetDir("/tmp/");
+    Window1.filedialog2.SetFileName (fname);
+    Window1.filedialog2_EvOnClose (1);
+   }
+  else if (strstr (fname, ".hex"))
+   {
+    printf ("Loading .hex...\n");
+    Window1.filedialog1.SetType (lxFD_OPEN | lxFD_CHANGE_DIR);
+    Window1.filedialog1.SetDir("/tmp/");
+    Window1.filedialog1.SetFileName (fname);
+    Window1.filedialog1_EvOnClose (1);
+   }
+  else if (strstr (fname, ".pcf"))
+   {
+     char buff[1024];
+     strncpy(buff,"/tmp/",1023);
+     strncat(buff,fname,1023);
+     printf ("Loading .pcf...\n");
+     Window5.LoadConfig (buff);
+     Window1.menu1_Modules_Spareparts_EvMenuActive(&Window1);
+   }
+  else
+   {
+    printf ("Unknow file %s !!\n", fname);
+   }
+ }
+}
+#endif

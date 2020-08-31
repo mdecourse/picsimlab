@@ -4,7 +4,7 @@
 
    ########################################################################
 
-   Copyright (c) : 2015-2019  Luis Claudio Gambôa Lopes
+   Copyright (c) : 2015-2020  Luis Claudio Gambôa Lopes
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -28,10 +28,10 @@
 
 #include<lxrad.h>
 
-#include "board_pic.h"
+#include "board_picsim.h"
 
 //new board class must be derived from board class defined in board.h
-class cboard_x:public board_pic
+class cboard_x:public board_picsim
 {
   private:
      int p_BT1;           //first board switch in RD0
@@ -50,17 +50,19 @@ class cboard_x:public board_pic
       cboard_x(void);
       //Destructor called once on board destruction 
       ~cboard_x(void); 
+      //Return the about info of board
+      lxString GetAboutInfo(void){return lxT("L.C. Gamboa \n <lcgamboa@yahoo.com>");};
       //Called ever 100ms to draw board
       void Draw(CDraw *draw,double scale);
       void Run_CPU(void);
       //Return a list of board supported microcontrollers
-      String GetSupportedDevices(void){return lxT("PIC18F4550,PIC16F877A,");};
+      lxString GetSupportedDevices(void){return lxT("PIC18F4550,PIC16F877A,");};
       //Return the filename of board picture 
-      String GetPictureFileName(void){return lxT("board_x.png");};
+      lxString GetPictureFileName(void){return lxT("x/board.png");};
       //Return the filename of board picture input map 
-      String GetInputMapFile(void){return lxT("input_boardx.map");};
+      lxString GetInputMapFile(void){return lxT("x/input.map");};
       //Return the filename of board picture output map 
-      String GetOutputMapFile(void){return lxT("output_boardx.map");};
+      lxString GetOutputMapFile(void){return lxT("x/output.map");};
       //Reset board status
       void Reset(void);
       //Event on the board

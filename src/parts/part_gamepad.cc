@@ -90,7 +90,6 @@ cpart_gamepad::cpart_gamepad (unsigned x, unsigned y)
  valuex = jr;
  valuey = jr;
 
- refresh=0;
 }
 
 cpart_gamepad::~cpart_gamepad (void)
@@ -148,12 +147,8 @@ cpart_gamepad::Draw (void)
 }
 
 void
-cpart_gamepad::Process (void)
+cpart_gamepad::PreProcess (void)
 {
-
- if (refresh > 1000)
-  {
-   refresh = 0;
 
    Window5.SetPin (output_pins[0], output_value[0]);
    Window5.SetPin (output_pins[1], output_value[1]);
@@ -163,8 +158,6 @@ cpart_gamepad::Process (void)
    Window5.SetPin (output_pins[5], output_value[5]);
    Window5.SetAPin (output_pins[6], 2.5 * (valuex) / jr);
    Window5.SetAPin (output_pins[7], 2.5 * (valuey) / jr);
-  }
- refresh++;
 }
 
 void
@@ -426,7 +419,7 @@ cpart_gamepad::get_out_id (char * name)
  return 1;
 };
 
-String
+lxString
 cpart_gamepad::WritePreferences (void)
 {
  char prefs[256];
@@ -437,110 +430,109 @@ cpart_gamepad::WritePreferences (void)
 };
 
 void
-cpart_gamepad::ReadPreferences (String value)
+cpart_gamepad::ReadPreferences (lxString value)
 {
  sscanf (value.c_str (), "%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu", &output_pins[0], &output_pins[1], &output_pins[2], &output_pins[3], &output_pins[4], &output_pins[5], &output_pins[6], &output_pins[7]);
-};
+}
 
-CPWindow * WProp_gamepad;
 
 void
-cpart_gamepad::ConfigurePropertiesWindow (CPWindow * wprop)
+cpart_gamepad::ConfigurePropertiesWindow (CPWindow * WProp)
 {
- String Items = Window5.GetPinsNames ();
- String spin;
- WProp_gamepad = wprop;
+ lxString Items = Window5.GetPinsNames ();
+ lxString spin;
 
- ((CCombo*) WProp_gamepad->GetChildByName ("combo1"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo1"))->SetItems (Items);
  if (output_pins[0] == 0)
-  ((CCombo*) WProp_gamepad->GetChildByName ("combo1"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo1"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (output_pins[0]);
-   ((CCombo*) WProp_gamepad->GetChildByName ("combo1"))->SetText (itoa (output_pins[0]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo1"))->SetText (itoa (output_pins[0]) + "  " + spin);
   }
 
- ((CCombo*) WProp_gamepad->GetChildByName ("combo2"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo2"))->SetItems (Items);
  if (output_pins[1] == 0)
-  ((CCombo*) WProp_gamepad->GetChildByName ("combo2"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo2"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (output_pins[1]);
-   ((CCombo*) WProp_gamepad->GetChildByName ("combo2"))->SetText (itoa (output_pins[1]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo2"))->SetText (itoa (output_pins[1]) + "  " + spin);
   }
 
- ((CCombo*) WProp_gamepad->GetChildByName ("combo3"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo3"))->SetItems (Items);
  if (output_pins[2] == 0)
-  ((CCombo*) WProp_gamepad->GetChildByName ("combo3"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo3"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (output_pins[2]);
-   ((CCombo*) WProp_gamepad->GetChildByName ("combo3"))->SetText (itoa (output_pins[2]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo3"))->SetText (itoa (output_pins[2]) + "  " + spin);
   }
 
- ((CCombo*) WProp_gamepad->GetChildByName ("combo4"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo4"))->SetItems (Items);
  if (output_pins[3] == 0)
-  ((CCombo*) WProp_gamepad->GetChildByName ("combo4"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo4"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (output_pins[3]);
-   ((CCombo*) WProp_gamepad->GetChildByName ("combo4"))->SetText (itoa (output_pins[3]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo4"))->SetText (itoa (output_pins[3]) + "  " + spin);
   }
 
- ((CCombo*) WProp_gamepad->GetChildByName ("combo5"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo5"))->SetItems (Items);
  if (output_pins[4] == 0)
-  ((CCombo*) WProp_gamepad->GetChildByName ("combo5"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo5"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (output_pins[4]);
-   ((CCombo*) WProp_gamepad->GetChildByName ("combo5"))->SetText (itoa (output_pins[4]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo5"))->SetText (itoa (output_pins[4]) + "  " + spin);
   }
 
- ((CCombo*) WProp_gamepad->GetChildByName ("combo6"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo6"))->SetItems (Items);
  if (output_pins[5] == 0)
-  ((CCombo*) WProp_gamepad->GetChildByName ("combo6"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo6"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (output_pins[5]);
-   ((CCombo*) WProp_gamepad->GetChildByName ("combo6"))->SetText (itoa (output_pins[5]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo6"))->SetText (itoa (output_pins[5]) + "  " + spin);
   }
 
- ((CCombo*) WProp_gamepad->GetChildByName ("combo7"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo7"))->SetItems (Items);
  if (output_pins[6] == 0)
-  ((CCombo*) WProp_gamepad->GetChildByName ("combo7"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo7"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (output_pins[6]);
-   ((CCombo*) WProp_gamepad->GetChildByName ("combo7"))->SetText (itoa (output_pins[6]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo7"))->SetText (itoa (output_pins[6]) + "  " + spin);
   }
 
- ((CCombo*) WProp_gamepad->GetChildByName ("combo8"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo8"))->SetItems (Items);
  if (output_pins[7] == 0)
-  ((CCombo*) WProp_gamepad->GetChildByName ("combo8"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo8"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (output_pins[7]);
-   ((CCombo*) WProp_gamepad->GetChildByName ("combo8"))->SetText (itoa (output_pins[7]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo8"))->SetText (itoa (output_pins[7]) + "  " + spin);
   }
 
- ((CButton*) WProp_gamepad->GetChildByName ("button1"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
- ((CButton*) WProp_gamepad->GetChildByName ("button1"))->SetTag (1);
+ ((CButton*) WProp->GetChildByName ("button1"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
+ ((CButton*) WProp->GetChildByName ("button1"))->SetTag (1);
 
- ((CButton*) WProp_gamepad->GetChildByName ("button2"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
+ ((CButton*) WProp->GetChildByName ("button2"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
 }
 
 void
-cpart_gamepad::ReadPropertiesWindow (void)
+cpart_gamepad::ReadPropertiesWindow (CPWindow * WProp)
 {
- output_pins[0] = atoi (((CCombo*) WProp_gamepad->GetChildByName ("combo1"))->GetText ());
- output_pins[1] = atoi (((CCombo*) WProp_gamepad->GetChildByName ("combo2"))->GetText ());
- output_pins[2] = atoi (((CCombo*) WProp_gamepad->GetChildByName ("combo3"))->GetText ());
- output_pins[3] = atoi (((CCombo*) WProp_gamepad->GetChildByName ("combo4"))->GetText ());
- output_pins[4] = atoi (((CCombo*) WProp_gamepad->GetChildByName ("combo5"))->GetText ());
- output_pins[5] = atoi (((CCombo*) WProp_gamepad->GetChildByName ("combo6"))->GetText ());
- output_pins[6] = atoi (((CCombo*) WProp_gamepad->GetChildByName ("combo7"))->GetText ());
- output_pins[7] = atoi (((CCombo*) WProp_gamepad->GetChildByName ("combo8"))->GetText ());
+ output_pins[0] = atoi (((CCombo*) WProp->GetChildByName ("combo1"))->GetText ());
+ output_pins[1] = atoi (((CCombo*) WProp->GetChildByName ("combo2"))->GetText ());
+ output_pins[2] = atoi (((CCombo*) WProp->GetChildByName ("combo3"))->GetText ());
+ output_pins[3] = atoi (((CCombo*) WProp->GetChildByName ("combo4"))->GetText ());
+ output_pins[4] = atoi (((CCombo*) WProp->GetChildByName ("combo5"))->GetText ());
+ output_pins[5] = atoi (((CCombo*) WProp->GetChildByName ("combo6"))->GetText ());
+ output_pins[6] = atoi (((CCombo*) WProp->GetChildByName ("combo7"))->GetText ());
+ output_pins[7] = atoi (((CCombo*) WProp->GetChildByName ("combo8"))->GetText ());
 
 }
 
+part_init("Gamepad", cpart_gamepad);
 

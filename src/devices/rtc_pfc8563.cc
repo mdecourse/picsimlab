@@ -97,8 +97,8 @@ rtc_getUtime(rtc_t *rtc)
  return mktime (&rtc->dtime);
 }
 
-int rtcc = 0;
-int alarm;
+static int rtcc = 0;
+static int alarm;
 
 void
 rtc_update(rtc_t *rtc)
@@ -404,3 +404,5 @@ rtc_io(rtc_t *rtc, unsigned char scl, unsigned char sda)
  rtc->sclo = scl;
  return rtc->ret;
 }
+
+//TODO int output and countdown timer

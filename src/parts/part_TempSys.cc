@@ -57,11 +57,11 @@ cpart_tempsys::cpart_tempsys(unsigned x, unsigned y)
  vtc = 0;
  vt = 0;
 
- image.LoadFile (Window1.GetSharePath () + lxT ("boards/VT1.png"));
+ image.LoadFile (Window1.GetSharePath () + lxT ("boards/Common/VT1.png"));
  vent[0] = new lxBitmap (image, &Window1);
  image.Destroy ();
 
- image.LoadFile (Window1.GetSharePath () + lxT ("boards/VT2.png"));
+ image.LoadFile (Window1.GetSharePath () + lxT ("boards/Common/VT2.png"));
  vent[1] = new lxBitmap (image, &Window1);
  image.Destroy ();
 
@@ -75,8 +75,8 @@ cpart_tempsys::cpart_tempsys(unsigned x, unsigned y)
  ref = 0;
  rpmstp = 0; //(NSTEP*2)/100;
  rpmc = 0;
- 
- refresh=0;
+
+ refresh = 0;
 }
 
 cpart_tempsys::~cpart_tempsys(void)
@@ -87,8 +87,8 @@ cpart_tempsys::~cpart_tempsys(void)
  delete vent[1];
  vent[0] = NULL;
  vent[1] = NULL;
- 
- canvas.Destroy();
+
+ canvas.Destroy ();
 
 }
 
@@ -96,7 +96,7 @@ void
 cpart_tempsys::Draw(void)
 {
  int i;
- String str;
+ lxString str;
 
  const picpin * ppins = Window5.GetPinsValues ();
 
@@ -148,7 +148,7 @@ cpart_tempsys::Draw(void)
      canvas.Text (str, output[i].x1, output[i].y1);
      break;
     case O_VT:
-     if(input_pins[1] == 0)break;
+     if (input_pins[1] == 0)break;
      if (ppins[input_pins[1] - 1].oavalue > 30) vtc++;
 
      if (vtc > (4 - 0.04 * ppins[input_pins[1] - 1].oavalue))
@@ -162,17 +162,19 @@ cpart_tempsys::Draw(void)
   }
 
  //sensor ventilador
- if(input_pins[1] > 0)
-   rpmstp = ((float) Window1.GetNSTEPJ ()) / (0.64 * (ppins[input_pins[1] - 1].oavalue - 29));
+ if (input_pins[1] > 0)
+  rpmstp = ((float) Window1.GetNSTEPJ ()) / (0.64 * (ppins[input_pins[1] - 1].oavalue - 29));
  //temperatura 
- if((input_pins[0] > 0)&&(input_pins[1] > 0))
-   ref = ((0.2222 * (ppins[input_pins[0] - 1].oavalue - 30)))-(0.2222 * (ppins[input_pins[1] - 1].oavalue - 30));
-
- if (ref < 0)
-  ref = 0;
+ if (input_pins[0] > 0)
+  ref = (0.2222 * (ppins[input_pins[0] - 1].oavalue - 30));
+ if (input_pins[1] > 0)
+  ref -= (0.2222 * (ppins[input_pins[1] - 1].oavalue - 30));
 
  temp[1] = temp[0];
  temp[0] = ((27.5 + ref)*0.003) + temp[1]*(0.997);
+
+ if (temp[0] < 27.5)
+  temp[0] = 27.5;
 
  Window5.SetAPin (input_pins[2], temp[0] / 100.0);
 
@@ -190,37 +192,34 @@ cpart_tempsys::Process(void)
    refresh = Window1.GetJUMPSTEPS ();
 
    const picpin * ppins = Window5.GetPinsValues ();
-   
-   if((input_pins[1]>0)&&(input_pins[3]>0))
-   {
-   if (ppins[input_pins[1] - 1].oavalue > 30)
+
+   if ((input_pins[1] > 0)&&(input_pins[3] > 0))
     {
-     rpmc++;
-     if (rpmc > rpmstp)
+     if (ppins[input_pins[1] - 1].oavalue > 30)
       {
-       rpmc = 0;
-       Window5.SetPin (input_pins[3], !ppins[input_pins[3] - 1].value);
+       rpmc++;
+       if (rpmc > rpmstp)
+        {
+         rpmc = 0;
+         Window5.SetPin (input_pins[3], !ppins[input_pins[3] - 1].value);
+        }
       }
+     else
+      Window5.SetPin (input_pins[3], 0);
     }
-   else
-    Window5.SetPin (input_pins[3], 0);
-   }
   }
  refresh--;
 
 }
 
 void
-cpart_tempsys::EvMouseButtonPress(uint button, uint x, uint y, uint state) {
- }
+cpart_tempsys::EvMouseButtonPress(uint button, uint x, uint y, uint state) { }
 
 void
-cpart_tempsys::EvMouseButtonRelease(uint button, uint x, uint y, uint state) {
- }
+cpart_tempsys::EvMouseButtonRelease(uint button, uint x, uint y, uint state) { }
 
 void
-cpart_tempsys::EvMouseMove(uint button, uint x, uint y, uint state) {
- }
+cpart_tempsys::EvMouseMove(uint button, uint x, uint y, uint state) { }
 
 unsigned short
 cpart_tempsys::get_in_id(char * name)
@@ -248,7 +247,7 @@ cpart_tempsys::get_out_id(char * name)
  return 1;
 };
 
-String
+lxString
 cpart_tempsys::WritePreferences(void)
 {
  char prefs[256];
@@ -256,72 +255,72 @@ cpart_tempsys::WritePreferences(void)
  sprintf (prefs, "%hhu,%hhu,%hhu,%hhu", input_pins[0], input_pins[1], input_pins[2], input_pins[3]);
 
  return prefs;
-};
+}
 
 void
-cpart_tempsys::ReadPreferences(String value)
+cpart_tempsys::ReadPreferences(lxString value)
 {
  sscanf (value.c_str (), "%hhu,%hhu,%hhu,%hhu", &input_pins[0], &input_pins[1], &input_pins[2], &input_pins[3]);
-};
-
-CPWindow * WProp_tempsys;
+}
 
 void
-cpart_tempsys::ConfigurePropertiesWindow(CPWindow * wprop)
+cpart_tempsys::ConfigurePropertiesWindow(CPWindow * WProp)
 {
- String Items = Window5.GetPinsNames ();
- String spin;
- WProp_tempsys = wprop;
+ lxString Items = Window5.GetPinsNames ();
+ lxString spin;
 
- ((CCombo*) WProp_tempsys->GetChildByName ("combo1"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo1"))->SetItems (Items);
  if (input_pins[0] == 0)
-  ((CCombo*) WProp_tempsys->GetChildByName ("combo1"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo1"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[0]);
-   ((CCombo*) WProp_tempsys->GetChildByName ("combo1"))->SetText (itoa (input_pins[0]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo1"))->SetText (itoa (input_pins[0]) + "  " + spin);
   }
 
- ((CCombo*) WProp_tempsys->GetChildByName ("combo2"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo2"))->SetItems (Items);
  if (input_pins[1] == 0)
-  ((CCombo*) WProp_tempsys->GetChildByName ("combo2"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo2"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[1]);
-   ((CCombo*) WProp_tempsys->GetChildByName ("combo2"))->SetText (itoa (input_pins[1]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo2"))->SetText (itoa (input_pins[1]) + "  " + spin);
   }
 
- ((CCombo*) WProp_tempsys->GetChildByName ("combo3"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo3"))->SetItems (Items);
  if (input_pins[2] == 0)
-  ((CCombo*) WProp_tempsys->GetChildByName ("combo3"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo3"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[2]);
-   ((CCombo*) WProp_tempsys->GetChildByName ("combo3"))->SetText (itoa (input_pins[2]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo3"))->SetText (itoa (input_pins[2]) + "  " + spin);
   }
 
- ((CCombo*) WProp_tempsys->GetChildByName ("combo4"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo4"))->SetItems (Items);
  if (input_pins[3] == 0)
-  ((CCombo*) WProp_tempsys->GetChildByName ("combo4"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo4"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[3]);
-   ((CCombo*) WProp_tempsys->GetChildByName ("combo4"))->SetText (itoa (input_pins[3]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo4"))->SetText (itoa (input_pins[3]) + "  " + spin);
   }
 
 
- ((CButton*) WProp_tempsys->GetChildByName ("button1"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
- ((CButton*) WProp_tempsys->GetChildByName ("button1"))->SetTag (1);
+ ((CButton*) WProp->GetChildByName ("button1"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
+ ((CButton*) WProp->GetChildByName ("button1"))->SetTag (1);
 
- ((CButton*) WProp_tempsys->GetChildByName ("button2"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
+ ((CButton*) WProp->GetChildByName ("button2"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
 }
 
 void
-cpart_tempsys::ReadPropertiesWindow(void)
+cpart_tempsys::ReadPropertiesWindow(CPWindow * WProp)
 {
- input_pins[0] = atoi (((CCombo*) WProp_tempsys->GetChildByName ("combo1"))->GetText ());
- input_pins[1] = atoi (((CCombo*) WProp_tempsys->GetChildByName ("combo2"))->GetText ());
- input_pins[2] = atoi (((CCombo*) WProp_tempsys->GetChildByName ("combo3"))->GetText ());
- input_pins[3] = atoi (((CCombo*) WProp_tempsys->GetChildByName ("combo4"))->GetText ());
+ input_pins[0] = atoi (((CCombo*) WProp->GetChildByName ("combo1"))->GetText ());
+ input_pins[1] = atoi (((CCombo*) WProp->GetChildByName ("combo2"))->GetText ());
+ input_pins[2] = atoi (((CCombo*) WProp->GetChildByName ("combo3"))->GetText ());
+ input_pins[3] = atoi (((CCombo*) WProp->GetChildByName ("combo4"))->GetText ());
 }
+
+
+part_init("Temperature System", cpart_tempsys);
 

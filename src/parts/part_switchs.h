@@ -4,7 +4,7 @@
 
    ########################################################################
 
-   Copyright (c) : 2010-2015  Luis Claudio Gambôa Lopes
+   Copyright (c) : 2010-2020  Luis Claudio Gambôa Lopes
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -33,20 +33,23 @@
 class cpart_switchs:public part
 {
    public:
-      String GetName(void){return lxT("Switchs");}; 
+      lxString GetName(void){return lxT("Switchs");}; 
+      lxString GetHelpURL(void){return lxT("Switchs.html");};
+      lxString GetAboutInfo(void){return lxT("L.C. Gamboa \n <lcgamboa@yahoo.com>");};            
       cpart_switchs(unsigned x, unsigned y);
       ~cpart_switchs(void);
       void Draw(void);
-      void Process(void);
-      String GetPictureFileName(void){return lxT("switchs.png");};
-      String GetInputMapFile(void){return lxT("switchs_i.map");};
-      String GetOutputMapFile(void){return lxT("switchs_o.map");};
-      String GetPropertiesWindowFile(void){return lxT("switchs.lxrad");};
+      void PreProcess(void);
+      lxString GetPictureFileName(void){return lxT("switchs/switchs.png");};
+      lxString GetInputMapFile(void){return lxT("switchs/switchs_i.map");};
+      lxString GetOutputMapFile(void){return lxT("switchs/switchs_o.map");};
+      lxString GetPropertiesWindowFile(void){return lxT("switchs/switchs.lxrad");};
+      void Reset(void); 
       void EvMouseButtonPress(uint button, uint x, uint y,uint state);
-      void ConfigurePropertiesWindow(CPWindow *  wprop);
-      void ReadPropertiesWindow(void);
-      String WritePreferences(void);
-      void ReadPreferences(String value);
+      void ConfigurePropertiesWindow(CPWindow *  WProp);
+      void ReadPropertiesWindow(CPWindow * WProp);
+      lxString WritePreferences(void);
+      void ReadPreferences(lxString value);
       unsigned short get_in_id(char * name);
       unsigned short get_out_id(char * name);
     private:

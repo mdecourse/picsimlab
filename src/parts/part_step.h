@@ -4,7 +4,7 @@
 
    ########################################################################
 
-   Copyright (c) : 2010-2015  Luis Claudio Gambôa Lopes
+   Copyright (c) : 2010-2020  Luis Claudio Gambôa Lopes
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -33,19 +33,21 @@
 class cpart_step:public part
 {
    public:
-      String GetName(void){return lxT("Step motor");}; 
+      lxString GetName(void){return lxT("Step motor");}; 
+      lxString GetHelpURL(void){return lxT("Step_Motor.html");};
+      lxString GetAboutInfo(void){return lxT("L.C. Gamboa \n <lcgamboa@yahoo.com>");};            
       cpart_step(unsigned x, unsigned y);
       ~cpart_step(void);
       void Draw(void);
       void Process(void);
-      String GetPictureFileName(void){return lxT("step_motor.png");};
-      String GetInputMapFile(void){return lxT("step_motor_i.map");};
-      String GetOutputMapFile(void){return lxT("step_motor_o.map");};
-      String GetPropertiesWindowFile(void){return lxT("step_motor.lxrad");};
-      void ConfigurePropertiesWindow(CPWindow *  wprop);
-      void ReadPropertiesWindow(void);
-      String WritePreferences(void);
-      void ReadPreferences(String value);
+      lxString GetPictureFileName(void){return lxT("step/step_motor.png");};
+      lxString GetInputMapFile(void){return lxT("step/step_motor_i.map");};
+      lxString GetOutputMapFile(void){return lxT("step/step_motor_o.map");};
+      lxString GetPropertiesWindowFile(void){return lxT("step/step_motor.lxrad");};
+      void ConfigurePropertiesWindow(CPWindow *  WProp);
+      void ReadPropertiesWindow(CPWindow * WProp);
+      lxString WritePreferences(void);
+      void ReadPreferences(lxString value);
       unsigned short get_in_id(char * name);
       unsigned short get_out_id(char * name);
     private:

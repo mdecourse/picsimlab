@@ -164,7 +164,7 @@ cpart_LCD_pcd8544::get_out_id (char * name)
  return 1;
 };
 
-String
+lxString
 cpart_LCD_pcd8544::WritePreferences (void)
 {
  char prefs[256];
@@ -175,80 +175,78 @@ cpart_LCD_pcd8544::WritePreferences (void)
 }
 
 void
-cpart_LCD_pcd8544::ReadPreferences (String value)
+cpart_LCD_pcd8544::ReadPreferences (lxString value)
 {
  sscanf (value.c_str (), "%hhu,%hhu,%hhu,%hhu,%hhu", &input_pins[0], &input_pins[1], &input_pins[2], &input_pins[3], &input_pins[4]);
  Reset ();
 }
 
-CPWindow * WProp_LCD_pcd8544;
 
 void
-cpart_LCD_pcd8544::ConfigurePropertiesWindow (CPWindow * wprop)
+cpart_LCD_pcd8544::ConfigurePropertiesWindow (CPWindow * WProp)
 {
- String Items = Window5.GetPinsNames ();
- String spin;
- WProp_LCD_pcd8544 = wprop;
+ lxString Items = Window5.GetPinsNames ();
+ lxString spin;
 
- ((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo1"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo1"))->SetItems (Items);
  if (input_pins[0] == 0)
-  ((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo1"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo1"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[0]);
-   ((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo1"))->SetText (itoa (input_pins[0]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo1"))->SetText (itoa (input_pins[0]) + "  " + spin);
   }
 
- ((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo2"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo2"))->SetItems (Items);
  if (input_pins[1] == 0)
-  ((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo2"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo2"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[1]);
-   ((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo2"))->SetText (itoa (input_pins[1]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo2"))->SetText (itoa (input_pins[1]) + "  " + spin);
   }
 
- ((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo3"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo3"))->SetItems (Items);
  if (input_pins[2] == 0)
-  ((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo3"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo3"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[2]);
-   ((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo3"))->SetText (itoa (input_pins[2]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo3"))->SetText (itoa (input_pins[2]) + "  " + spin);
   }
 
- ((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo4"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo4"))->SetItems (Items);
  if (input_pins[3] == 0)
-  ((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo4"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo4"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[3]);
-   ((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo4"))->SetText (itoa (input_pins[3]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo4"))->SetText (itoa (input_pins[3]) + "  " + spin);
   }
 
- ((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo5"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo5"))->SetItems (Items);
  if (input_pins[4] == 0)
-  ((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo5"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo5"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[4]);
-   ((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo5"))->SetText (itoa (input_pins[4]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo5"))->SetText (itoa (input_pins[4]) + "  " + spin);
   }
 
- ((CButton*) WProp_LCD_pcd8544->GetChildByName ("button1"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
- ((CButton*) WProp_LCD_pcd8544->GetChildByName ("button1"))->SetTag (1);
+ ((CButton*) WProp->GetChildByName ("button1"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
+ ((CButton*) WProp->GetChildByName ("button1"))->SetTag (1);
 
- ((CButton*) WProp_LCD_pcd8544->GetChildByName ("button2"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
+ ((CButton*) WProp->GetChildByName ("button2"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
 }
 
 void
-cpart_LCD_pcd8544::ReadPropertiesWindow (void)
+cpart_LCD_pcd8544::ReadPropertiesWindow (CPWindow * WProp)
 {
- input_pins[0] = atoi (((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo1"))->GetText ());
- input_pins[1] = atoi (((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo2"))->GetText ());
- input_pins[2] = atoi (((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo3"))->GetText ());
- input_pins[3] = atoi (((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo4"))->GetText ());
- input_pins[4] = atoi (((CCombo*) WProp_LCD_pcd8544->GetChildByName ("combo5"))->GetText ());
+ input_pins[0] = atoi (((CCombo*) WProp->GetChildByName ("combo1"))->GetText ());
+ input_pins[1] = atoi (((CCombo*) WProp->GetChildByName ("combo2"))->GetText ());
+ input_pins[2] = atoi (((CCombo*) WProp->GetChildByName ("combo3"))->GetText ());
+ input_pins[3] = atoi (((CCombo*) WProp->GetChildByName ("combo4"))->GetText ());
+ input_pins[4] = atoi (((CCombo*) WProp->GetChildByName ("combo5"))->GetText ());
 }
 
 void
@@ -268,3 +266,6 @@ cpart_LCD_pcd8544::Process (void)
  }
 
 }
+
+part_init("LCD pcd8544", cpart_LCD_pcd8544);
+

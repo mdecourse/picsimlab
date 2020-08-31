@@ -33,38 +33,42 @@
 class cpart_led_matrix : public part {
 public:
 
-    String GetName(void) {
+    lxString GetName(void) {
         return lxT("LED Matrix");
     };
+    lxString GetHelpURL(void){return lxT("LED_Matrix.html");};
+    lxString GetAboutInfo(void){return lxT("L.C. Gamboa \n <lcgamboa@yahoo.com>");};          
     cpart_led_matrix(unsigned x, unsigned y);
     ~cpart_led_matrix(void);
     void Draw(void);
     void Process(void);
 
-    String GetPictureFileName(void) {
-        return lxT("LED_matrix.png");
+    lxString GetPictureFileName(void) {
+        return lxT("led_matrix/LED_matrix.png");
     };
 
-    String GetInputMapFile(void) {
-        return lxT("LED_matrix_i.map");
+    lxString GetInputMapFile(void) {
+        return lxT("led_matrix/LED_matrix_i.map");
     };
 
-    String GetOutputMapFile(void) {
-        return lxT("LED_matrix_o.map");
+    lxString GetOutputMapFile(void) {
+        return lxT("led_matrix/LED_matrix_o.map");
     };
 
-    String GetPropertiesWindowFile(void) {
-        return lxT("LED_matrix.lxrad");
+    lxString GetPropertiesWindowFile(void) {
+        return lxT("led_matrix/LED_matrix.lxrad");
     };
-    void ConfigurePropertiesWindow(CPWindow * wprop);
-    void ReadPropertiesWindow(void);
-    String WritePreferences(void);
-    void ReadPreferences(String value);
+    void ConfigurePropertiesWindow(CPWindow * WProp);
+    void ReadPropertiesWindow(CPWindow * WProp);
+    lxString WritePreferences(void);
+    void ReadPreferences(lxString value);
     unsigned short get_in_id(char * name);
     unsigned short get_out_id(char * name);
 private:
     unsigned char input_pins[3];
+    unsigned char output_pins[1];
     ldd_max72xx_t ldd;
+    int angle;
 };
 
 

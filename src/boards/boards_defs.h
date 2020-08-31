@@ -4,7 +4,7 @@
 
    ########################################################################
 
-   Copyright (c) : 2010-2015  Luis Claudio Gambôa Lopes
+   Copyright (c) : 2010-2020  Luis Claudio Gambôa Lopes
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -24,31 +24,36 @@
    ######################################################################## */
 
 #ifndef BOARDS_DEFS_H
-#define	BOARDS_DEFS_H
+#define BOARDS_DEFS_H
+
+#include "board.h"
+
+#define board_init(name, function)  \
+    static board * function ## _create(void){\
+    return new function ();};\
+    static void __attribute__((constructor)) function ## _init (void);\
+    static void function ## _init (void){\
+    board_register(name, function ## _create );}
 
 
-//includes of boards
-#include"board_0.h"
-#include"board_1.h" 
-#include"board_2.h"
-#include"board_3.h"
-#include"board_4.h"
-#include"board_5.h"
-#ifdef _EXPERIMENTAL_
-#include"board_6.h"
-#include"board_7.h"
-#include"board_x.h"
-//number of last board
-#define BOARDS_LAST 9
-#else
-//number of last board
-#define BOARDS_LAST 6
-#endif
+typedef board * (* board_create_func)(void);
+
+void board_register(const char * name, board_create_func bcreate);
 
 //boards object creation
-board * create_board(int *lab,int *lab_);
+board * create_board(int *lab, int *lab_);
 
-extern const char boards_list[BOARDS_LAST][30];
+#define BOARDS_MAX 15
 
-#endif	/* BOARDS_DEFS_H */
+extern int BOARDS_LAST;
+
+typedef struct {
+    char name[30];  //name
+    char name_[30]; //name without spaces
+    board_create_func bcreate;
+} board_desc;
+
+extern board_desc boards_list[BOARDS_MAX];
+
+#endif /* BOARDS_DEFS_H */
 

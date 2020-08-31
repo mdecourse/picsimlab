@@ -1,34 +1,31 @@
-include ../Makefile.conf
+include Makefile.Common
 
-CC = i686-w64-mingw32-g++
-WINDRES =  i686-w64-mingw32-windres  
+TOOL_PREFIX=i686-w64-mingw32-
+CC = $(TOOL_PREFIX)g++
+WINDRES =  $(TOOL_PREFIX)windres  
+STRIP =  $(TOOL_PREFIX)strip 
+PKG_CONFIG= -mms-bitfields -I../dev_w32/include/glib-2.0 -I../dev_w32/lib/glib-2.0/include
 
-#//FIXME Otimization cause crash on program exit !! cause unknown, only in windows 32. Don't use flag -O3
-FLAGS = -Wall -O3 -D_WIN_ -I/usr/include/lxrad  -D_VERSION_=\"$(VERSION)\" -D_SHARE_=\"share/\"  `i686-w64-mingw32-msw-unicode-3.1  --cxxflags` -fomit-frame-pointer
+override CFLAGS+= -Wall -g -O3 -D_WIN_ -I../dev_w32/include -I../dev_w32/include/lxrad -D_VERSION_=\"$(VERSION)\" -D_SHARE_=\"share/\"  
+override CFLAGS+= -DEXT_BROWSER
+override CFLAGS+= -I../dev_w32/lib/wx/include/i686-w64-mingw32-msw-unicode-3.1 -I../dev_w32/include/wx-3.1 -D_FILE_OFFSET_BITS=64 -DWXUSINGDLL -D__WXMSW__ -mthreads
 
-LIBS= -llxrad  -lpicsim `i686-w64-mingw32-msw-unicode-3.1 --libs` ../../simavr_win/simavr/obj-i686-w64-mingw32/libsimavr.a -lws2_32 
-#LIBS= ../../LXRAD_WX/libteste/liblxrad.aw  `i686-w64-mingw32-msw-unicode-3.1 --libs` -lws2_32
-#LIBS= -llxrad  -lpicsim  -lwx_mswu_xrc-3.1-i686-w64-mingw32 -lwx_mswu_html-3.1-i686-w64-mingw32 -lwx_mswu_qa-3.1-i686-w64-mingw32 -lwx_mswu_adv-3.1-i686-w64-mingw32 -lwx_mswu_core-3.1-i686-w64-mingw32 -lwx_baseu_xml-3.1-i686-w64-mingw32 -lwx_baseu_net-3.1-i686-w64-mingw32 -lwx_baseu-3.1-i686-w64-mingw32  ../../simavr_win/simavr/obj-i686-w64-mingw32/libsimavr.a -lws2_32 
+#CFLAGS +=`i686-w64-mingw32-msw-unicode-3.1  --cxxflags` 
 
-OBJS = ppicsimlab.o picsimlab1.o picsimlab2.o picsimlab3.o picsimlab4.o picsimlab5.o\
- boards/board.o boards/boards_defs.o boards/board_pic.o boards/board_avr.o boards/board_avr_serial.o\
- boards/board_1.o boards/board_2.o boards/board_3.o boards/board_4.o boards/board_5.o boards/board_6.o\
- boards/board_7.o boards/board_x.o boards/board_0.o\
- devices/lcd_hd44780.o devices/mi2c_24CXXX.o devices/rtc_ds1307.o devices/rtc_pfc8563.o devices/lcd_pcf8833.o\
- devices/lcd_pcd8544.o devices/mplabxd.o devices/ldd_max72xx.o\
- parts/parts_defs.o parts/part.o parts/part_servo.o parts/part_step.o parts/part_d_transfer_function.o\
- parts/part_LEDs.o parts/part_push_buttons.o parts/part_switchs.o parts/part_pot.o parts/part_RGB_LED.o\
- parts/part_LCD_hd44780.o parts/part_LCD_pcf8833.o parts/part_LCD_pcd8544.o parts/part_gamepad.o\
- parts/part_LED_matrix.o parts/part_7s_Display.o parts/part_TempSys.o parts/part_keypad.o \
- parts/part_MI2C_24CXXX.o parts/part_RTC_ds1307.o parts/part_RTC_pfc8563.o
+LIBS= -llxrad -lOpenAL32 -lpicsim  -lsimavr -lws2_32 -L../dev_w32/lib $(ELIBS)
+LIBS+= -Wl,--subsystem,windows -mwindows 
+LIBS+= -lwx_mswu_core-3.1-i686-w64-mingw32 -lwx_baseu-3.1-i686-w64-mingw32 
+
+#LIBS+=`i686-w64-mingw32-msw-unicode-3.1 --libs` 
 
 all: $(OBJS)
 	$(WINDRES) picsimlab_res.rc  -O coff -o picsimlab_res.o
-	$(CC) $(FLAGS) $(OBJS) picsimlab_res.o -opicsimlab.exe $(LIBS)
-	mv *.exe ../picsimlab_$(VERSION)_win32/
+	$(CC) $(CFLAGS) $(OBJS) picsimlab_res.o -opicsimlab.exe $(LIBS)
+	$(STRIP) picsimlab.exe
+	mv *.exe ../picsimlab_win32/
 
 %.o: %.cc
-	$(CC) -c $(FLAGS) $< -o $@ 
+	$(CC) -c $(CFLAGS) $< -o $@ 
 
 run: all
 	wine ./picsimlab.exe

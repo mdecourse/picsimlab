@@ -4,7 +4,7 @@
 
    ########################################################################
 
-   Copyright (c) : 2010-2015  Luis Claudio Gambôa Lopes
+   Copyright (c) : 2010-2020  Luis Claudio Gambôa Lopes
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -29,36 +29,50 @@
 #include<lxrad.h>
 #include"part.h"
 
-
+    /**
+     * @brief servo motor part class
+     *
+     * class definition of servo motor class.
+     */
 class cpart_servo:public part
 {
    public:
-      String GetName(void){return lxT("Servo motor");};
+      lxString GetName(void){return lxT("Servo motor");};
+      lxString GetHelpURL(void){return lxT("Servo_Motor.html");};
+      lxString GetAboutInfo(void){return lxT("L.C. Gamboa \n <lcgamboa@yahoo.com>");};      
+      
+     /**
+     * @brief constructor called once on part creation
+     *
+     */
       cpart_servo(unsigned x, unsigned y);
+     
+     /**
+     * @brief destructor called once on part destruction
+     *
+     */
       ~cpart_servo(void);
+      
       void Draw(void);
       void Process(void);
-      String GetPictureFileName(void){return lxT("servo_motor.png");};
-      String GetInputMapFile(void){return lxT("servo_motor_i.map");};
-      String GetOutputMapFile(void){return lxT("servo_motor_o.map");};
-      String GetPropertiesWindowFile(void){return lxT("servo_motor.lxrad");};
-      void ConfigurePropertiesWindow(CPWindow *  wprop);
-      void ReadPropertiesWindow(void);
-      String WritePreferences(void);
-      void ReadPreferences(String value);
+      lxString GetPictureFileName(void){return lxT("servo/servo_motor.png");};
+      lxString GetInputMapFile(void){return lxT("servo/servo_motor_i.map");};
+      lxString GetOutputMapFile(void){return lxT("servo/servo_motor_o.map");};
+      lxString GetPropertiesWindowFile(void){return lxT("servo/servo_motor.lxrad");};
+      void ConfigurePropertiesWindow(CPWindow *  WProp);
+      void ReadPropertiesWindow(CPWindow * WProp);
+      lxString WritePreferences(void);
+      void ReadPreferences(lxString value);
       unsigned short get_in_id(char * name);
       unsigned short get_out_id(char * name);
     private:  
-      unsigned char input_pin;   
-      lxBitmap * BackGround;  //Background image
-      float angle;
-      float angle_;
-      unsigned char in_[2];
-      int time;
+      unsigned char input_pin; ///< pulse input pin  
+      lxBitmap * BackGround;   ///< Background image
+      float angle;             ///< angle of shaft
+      float angle_;            ///< old angle of shaft
+      unsigned char in_[2];    ///< input pin memory
+      int time;                ///< pulse time
 };
-
-
-
 
 #endif	/* PART_SERVO */
 

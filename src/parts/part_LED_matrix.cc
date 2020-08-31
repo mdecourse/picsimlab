@@ -31,7 +31,7 @@
 /* outputs */
 enum
 {
- O_P1, O_P2, O_P3, O_F1, O_F2, O_LED
+ O_P1, O_P2, O_P3, O_P4, O_F1, O_F2, O_LED
 };
 
 cpart_led_matrix::cpart_led_matrix(unsigned x, unsigned y)
@@ -45,6 +45,7 @@ cpart_led_matrix::cpart_led_matrix(unsigned x, unsigned y)
 
  image.LoadFile (Window1.GetSharePath () + lxT ("parts/") + GetPictureFileName ());
 
+ angle = 0;
 
  Bitmap = new lxBitmap (image, &Window5);
  image.Destroy ();
@@ -57,12 +58,15 @@ cpart_led_matrix::cpart_led_matrix(unsigned x, unsigned y)
  input_pins[1] = 0;
  input_pins[2] = 0;
 
-};
+ output_pins[0] = Window5.RegisterIOpin (lxT ("DOUT"));
+
+}
 
 cpart_led_matrix::~cpart_led_matrix(void)
 {
+ Window5.UnregisterIOpin (output_pins[0]);
  delete Bitmap;
- canvas.Destroy();
+ canvas.Destroy ();
 }
 
 void
@@ -91,6 +95,16 @@ cpart_led_matrix::Draw(void)
      else
       canvas.RotatedText (Window5.GetPinName (input_pins[output[i].id - O_P1]), output[i].x1, output[i].y2, 90.0);
      break;
+    case O_P4:
+     canvas.SetColor (49, 61, 99);
+     canvas.Rectangle (1, output[i].x1, output[i].y1, output[i].x2 - output[i].x1, output[i].y2 - output[i].y1);
+     canvas.SetFgColor (255, 255, 255);
+     if (output_pins[output[i].id - O_P4] == 0)
+      canvas.RotatedText ("NC", output[i].x1, output[i].y2, 90.0);
+     else
+      canvas.RotatedText (itoa (output_pins[output[i].id - O_P4]), output[i].x1, output[i].y2, 90.0);
+     break;
+     break;
     case O_F1:
      canvas.SetColor (49, 61, 99);
      canvas.Rectangle (1, output[i].x1, output[i].y1, output[i].x2 - output[i].x1, output[i].y2 - output[i].y1);
@@ -108,7 +122,7 @@ cpart_led_matrix::Draw(void)
      if (ldd.update)
       {
        canvas.SetColor (0, 90 + 40, 0);
-       ldd_max72xx_draw (&ldd, &canvas, output[i].x1, output[i].y1, output[i].x2 - output[i].x1, output[i].y2 - output[i].y1, 1);
+       ldd_max72xx_draw (&ldd, &canvas, output[i].x1, output[i].y1, output[i].x2 - output[i].x1, output[i].y2 - output[i].y1, 1, angle);
       }
      break;
     }
@@ -133,6 +147,7 @@ cpart_led_matrix::get_out_id(char * name)
  if (strcmp (name, "P1") == 0)return O_P1;
  if (strcmp (name, "P2") == 0)return O_P2;
  if (strcmp (name, "P3") == 0)return O_P3;
+ if (strcmp (name, "P4") == 0)return O_P4;
 
  if (strcmp (name, "F1") == 0)return O_F1;
  if (strcmp (name, "F2") == 0)return O_F2;
@@ -143,71 +158,80 @@ cpart_led_matrix::get_out_id(char * name)
  return 1;
 };
 
-String
+lxString
 cpart_led_matrix::WritePreferences(void)
 {
  char prefs[256];
 
- sprintf (prefs, "%hhu,%hhu,%hhu", input_pins[0], input_pins[1], input_pins[2]);
+ sprintf (prefs, "%hhu,%hhu,%hhu,%hhu,%i", input_pins[0], input_pins[1], input_pins[2], output_pins[0], angle);
 
  return prefs;
 }
 
 void
-cpart_led_matrix::ReadPreferences(String value)
+cpart_led_matrix::ReadPreferences(lxString value)
 {
- sscanf (value.c_str (), "%hhu,%hhu,%hhu", &input_pins[0], &input_pins[1], &input_pins[2]);
+ unsigned char outp;
+ sscanf (value.c_str (), "%hhu,%hhu,%hhu,%hhu,%i", &input_pins[0], &input_pins[1], &input_pins[2], &outp, &angle);
+
+
+ Window5.UnregisterIOpin (output_pins[0]);
+ output_pins[0] = Window5.RegisterIOpin (lxT ("DOUT"), outp);
+
  Reset ();
 }
 
-CPWindow * WProp_led_matrix;
 
 void
-cpart_led_matrix::ConfigurePropertiesWindow(CPWindow * wprop)
+cpart_led_matrix::ConfigurePropertiesWindow(CPWindow * WProp)
 {
- String Items = Window5.GetPinsNames ();
- String spin;
- WProp_led_matrix = wprop;
+ lxString Items = Window5.GetPinsNames ();
+ lxString spin;
 
- ((CCombo*) WProp_led_matrix->GetChildByName ("combo1"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo1"))->SetItems (Items);
  if (input_pins[0] == 0)
-  ((CCombo*) WProp_led_matrix->GetChildByName ("combo1"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo1"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[0]);
-   ((CCombo*) WProp_led_matrix->GetChildByName ("combo1"))->SetText (itoa (input_pins[0]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo1"))->SetText (itoa (input_pins[0]) + "  " + spin);
   }
 
- ((CCombo*) WProp_led_matrix->GetChildByName ("combo2"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo2"))->SetItems (Items);
  if (input_pins[1] == 0)
-  ((CCombo*) WProp_led_matrix->GetChildByName ("combo2"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo2"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[1]);
-   ((CCombo*) WProp_led_matrix->GetChildByName ("combo2"))->SetText (itoa (input_pins[1]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo2"))->SetText (itoa (input_pins[1]) + "  " + spin);
   }
 
- ((CCombo*) WProp_led_matrix->GetChildByName ("combo3"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo3"))->SetItems (Items);
  if (input_pins[2] == 0)
-  ((CCombo*) WProp_led_matrix->GetChildByName ("combo3"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo3"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[2]);
-   ((CCombo*) WProp_led_matrix->GetChildByName ("combo3"))->SetText (itoa (input_pins[2]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo3"))->SetText (itoa (input_pins[2]) + "  " + spin);
   }
+ 
+ ((CLabel*) WProp->GetChildByName ("label6"))->SetText ("Pin 6 - Dout     "+itoa (output_pins[0]));
+  
+ ((CCombo*) WProp->GetChildByName ("combo4"))->SetText (itoa (angle));
 
- ((CButton*) WProp_led_matrix->GetChildByName ("button1"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
- ((CButton*) WProp_led_matrix->GetChildByName ("button1"))->SetTag (1);
+ ((CButton*) WProp->GetChildByName ("button1"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
+ ((CButton*) WProp->GetChildByName ("button1"))->SetTag (1);
 
- ((CButton*) WProp_led_matrix->GetChildByName ("button2"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
+ ((CButton*) WProp->GetChildByName ("button2"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
 }
 
 void
-cpart_led_matrix::ReadPropertiesWindow(void)
+cpart_led_matrix::ReadPropertiesWindow(CPWindow * WProp)
 {
- input_pins[0] = atoi (((CCombo*) WProp_led_matrix->GetChildByName ("combo1"))->GetText ());
- input_pins[1] = atoi (((CCombo*) WProp_led_matrix->GetChildByName ("combo2"))->GetText ());
- input_pins[2] = atoi (((CCombo*) WProp_led_matrix->GetChildByName ("combo3"))->GetText ());
+ input_pins[0] = atoi (((CCombo*) WProp->GetChildByName ("combo1"))->GetText ());
+ input_pins[1] = atoi (((CCombo*) WProp->GetChildByName ("combo2"))->GetText ());
+ input_pins[2] = atoi (((CCombo*) WProp->GetChildByName ("combo3"))->GetText ());
+ angle = atoi (((CCombo*) WProp->GetChildByName ("combo4"))->GetText ());
 }
 
 void
@@ -215,9 +239,18 @@ cpart_led_matrix::Process(void)
 {
  const picpin * ppins = Window5.GetPinsValues ();
 
- if((input_pins[0] > 0)&&(input_pins[1] > 0)&&(input_pins[2] > 0))
- {
-  ldd_max72xx_io (&ldd, ppins[input_pins[0] - 1].value, ppins[input_pins[2] - 1].value, ppins[input_pins[1] - 1].value);
- }
+ if ((input_pins[0] > 0)&&(input_pins[1] > 0)&&(input_pins[2] > 0))
+  {
+   unsigned char out;
+   out = ldd_max72xx_io (&ldd, ppins[input_pins[0] - 1].value, ppins[input_pins[2] - 1].value, ppins[input_pins[1] - 1].value);
+
+   if (out != ppins[output_pins[0] - 1].value)
+    {
+     Window5.WritePin (output_pins[0], out);
+    }
+  }
 
 }
+
+part_init("LED Matrix", cpart_led_matrix);
+

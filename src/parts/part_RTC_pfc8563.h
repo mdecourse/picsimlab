@@ -28,24 +28,25 @@
 
 #include<lxrad.h>
 #include"part.h"
-#include"../devices/lcd_pcd8544.h"
 
 class cpart_RTC_pfc8563:public part
 {
    public:
-      String GetName(void){return lxT("RTC pfc8563");};
+      lxString GetName(void){return lxT("RTC pfc8563");};
+      lxString GetHelpURL(void){return lxT("RTC_pfc8563.html");};
+      lxString GetAboutInfo(void){return lxT("L.C. Gamboa \n <lcgamboa@yahoo.com>");};            
       cpart_RTC_pfc8563(unsigned x, unsigned y);
       ~cpart_RTC_pfc8563(void);
       void Draw(void);
       void Process(void);
-      String GetPictureFileName(void){return lxT("IC8.png");};
-      String GetInputMapFile(void){return lxT("IC8_i.map");};
-      String GetOutputMapFile(void){return lxT("IC8_o.map");};
-      String GetPropertiesWindowFile(void){return lxT("RTC_pfc8563.lxrad");};
-      void ConfigurePropertiesWindow(CPWindow *  wprop);
-      void ReadPropertiesWindow(void);
-      String WritePreferences(void);
-      void ReadPreferences(String value);
+      lxString GetPictureFileName(void){return lxT("Common/IC8.png");};
+      lxString GetInputMapFile(void){return lxT("Common/IC8_i.map");};
+      lxString GetOutputMapFile(void){return lxT("Common/IC8_o.map");};
+      lxString GetPropertiesWindowFile(void){return lxT("RTC_pfc8563/RTC_pfc8563.lxrad");};
+      void ConfigurePropertiesWindow(CPWindow *  WProp);
+      void ReadPropertiesWindow(CPWindow * WProp);
+      lxString WritePreferences(void);
+      void ReadPreferences(lxString value);
       unsigned short get_in_id(char * name);
       unsigned short get_out_id(char * name);
    private:

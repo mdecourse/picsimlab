@@ -30,24 +30,27 @@
 #include"part.h"
 
 //#define DUMP_DIR
+//#define DATA_DEBUG
 
 class cpart_VCD_Dump:public part
 {
    public:
-      String GetName(void){return lxT("VCD Dump");};
+      lxString GetName(void){return lxT("VCD Dump");};
+      lxString GetHelpURL(void){return lxT("VCD_dump.html");};
+      lxString GetAboutInfo(void){return lxT("L.C. Gamboa \n <lcgamboa@yahoo.com>");};            
       cpart_VCD_Dump(unsigned x, unsigned y);
       ~cpart_VCD_Dump(void);
       void Draw(void);
       void Process(void);
-      String GetPictureFileName(void){return lxT("VCD_Dump.png");};
-      String GetInputMapFile(void){return lxT("VCD_Dump_i.map");};
-      String GetOutputMapFile(void){return lxT("VCD_Dump_o.map");};
-      String GetPropertiesWindowFile(void){return lxT("VCD_Dump.lxrad");};
+      lxString GetPictureFileName(void){return lxT("VCD_Dump/VCD_Dump.png");};
+      lxString GetInputMapFile(void){return lxT("VCD_Dump/VCD_Dump_i.map");};
+      lxString GetOutputMapFile(void){return lxT("VCD_Dump/VCD_Dump_o.map");};
+      lxString GetPropertiesWindowFile(void){return lxT("VCD_Dump/VCD_Dump.lxrad");};
       void EvMouseButtonPress(uint button, uint x, uint y,uint state);
-      void ConfigurePropertiesWindow(CPWindow *  wprop);
-      void ReadPropertiesWindow(void);
-      String WritePreferences(void);
-      void ReadPreferences(String value);
+      void ConfigurePropertiesWindow(CPWindow *  WProp);
+      void ReadPropertiesWindow(CPWindow * WProp);
+      lxString WritePreferences(void);
+      void ReadPreferences(lxString value);
       unsigned short get_in_id(char * name);
       unsigned short get_out_id(char * name);
      private:
@@ -55,6 +58,9 @@ class cpart_VCD_Dump:public part
       unsigned char old_value_pins[8]; 
 #ifdef DUMP_DIR
       unsigned char old_value_dir[8]; 
+#endif      
+#ifdef DATA_DEBUG
+      unsigned char old_data_debug[8];
 #endif      
       char   f_vcd_name[200];
       FILE * f_vcd;

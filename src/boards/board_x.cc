@@ -30,22 +30,24 @@
 #include"board_x.h"
 
 /* ids of inputs of input map*/
-enum{
-I_ICSP, //ICSP connector
-I_PWR,  //Power button
-I_RST,  //Reset button
-I_D0,   //RD0 push button
-I_D1    //RD1 switch
+enum
+{
+ I_ICSP, //ICSP connector
+ I_PWR, //Power button
+ I_RST, //Reset button
+ I_D0, //RD0 push button
+ I_D1 //RD1 switch
 };
 
 /* ids of outputs of output map*/
-enum{
-O_SD1,  //switch position (On/Off)
-O_LD0,  //LED on RD0 push button
-O_LD1,  //LED on RD1 switch
-O_LPWR, //Power LED
-O_RB0,  //LED on RB0 output
-O_RB1   //LED on RB1 output
+enum
+{
+ O_SD1, //switch position (On/Off)
+ O_LD0, //LED on RD0 push button
+ O_LD1, //LED on RD1 switch
+ O_LPWR, //Power LED
+ O_RB0, //LED on RB0 output
+ O_RB1 //LED on RB1 output
 };
 //return the input ids numbers of names used in input map
 
@@ -58,9 +60,9 @@ cboard_x::get_in_id(char * name)
  if (strcmp (name, "I_D0") == 0)return I_D0;
  if (strcmp (name, "I_D1") == 0)return I_D1;
 
- printf ("Erro input '%s' don't have a valid id! \n", name);
+ printf ("Error input '%s' don't have a valid id! \n", name);
  return -1;
-};
+}
 
 //return the output ids numbers of names used in output map
 
@@ -75,15 +77,15 @@ cboard_x::get_out_id(char * name)
  if (strcmp (name, "O_RB1") == 0)return O_RB1;
  if (strcmp (name, "O_RB0") == 0)return O_RB0;
 
- printf ("Erro output '%s' don't have a valid id! \n", name);
+ printf ("Error output '%s' don't have a valid id! \n", name);
  return 1;
-};
+}
 
 //Constructor called once on board creation 
 
 cboard_x::cboard_x(void)
 {
- proc = "PIC18F4550"; //default microcontroller if none defined in preferences
+ Proc = "PIC18F4550"; //default microcontroller if none defined in preferences
  ReadMaps (); //Read input and output board maps
 
  //controls properties and creation
@@ -168,7 +170,7 @@ cboard_x::cboard_x(void)
  label3->SetText (lxT ("RB1"));
  label3->SetAlign (1);
  Window1.CreateChild (label3);
-};
+}
 
 //Destructor called once on board destruction 
 
@@ -200,20 +202,20 @@ cboard_x::Reset(void)
 
  //verify serial port state and refresh status bar  
 #ifndef _WIN_
- if (pic.serialfd > 0)
+ if (pic.serial[0].serialfd > 0)
 #else
- if (pic.serialfd != INVALID_HANDLE_VALUE)
+ if (pic.serial[0].serialfd != INVALID_HANDLE_VALUE)
 #endif
   Window1.statusbar1.SetField (2, lxT ("Serial: ") +
-                               String::FromAscii (SERIALDEVICE) + lxT (":") + itoa (pic.serialbaud) + lxT ("(") +
-                               String ().Format ("%4.1f", fabs ((100.0 * pic.serialexbaud - 100.0 *
-                                                                 pic.serialbaud) / pic.serialexbaud)) + lxT ("%)"));
+                               lxString::FromAscii (SERIALDEVICE) + lxT (":") + itoa (pic.serial[0].serialbaud) + lxT ("(") +
+                               lxString ().Format ("%4.1f", fabs ((100.0 * pic.serial[0].serialexbaud - 100.0 *
+                                                                 pic.serial[0].serialbaud) / pic.serial[0].serialexbaud)) + lxT ("%)"));
  else
   Window1.statusbar1.SetField (2, lxT ("Serial: ") +
-                               String::FromAscii (SERIALDEVICE) + lxT (" (ERROR)"));
+                               lxString::FromAscii (SERIALDEVICE) + lxT (" (ERROR)"));
 
-
-};
+ if (use_spare)Window5.Reset ();
+}
 
 //Called ever 1s to refresh status
 
@@ -222,19 +224,19 @@ cboard_x::RefreshStatus(void)
 {
  //verify serial port state and refresh status bar   
 #ifndef _WIN_
- if (pic.serialfd > 0)
+ if (pic.serial[0].serialfd > 0)
 #else
- if (pic.serialfd != INVALID_HANDLE_VALUE)
+ if (pic.serial[0].serialfd != INVALID_HANDLE_VALUE)
 #endif
   Window1.statusbar1.SetField (2, lxT ("Serial: ") +
-                               String::FromAscii (SERIALDEVICE) + lxT (":") + itoa (pic.serialbaud) + lxT ("(") +
-                               String ().Format ("%4.1f", fabs ((100.0 * pic.serialexbaud - 100.0 *
-                                                                 pic.serialbaud) / pic.serialexbaud)) + lxT ("%)"));
+                               lxString::FromAscii (SERIALDEVICE) + lxT (":") + itoa (pic.serial[0].serialbaud) + lxT ("(") +
+                               lxString ().Format ("%4.1f", fabs ((100.0 * pic.serial[0].serialexbaud - 100.0 *
+                                                                 pic.serial[0].serialbaud) / pic.serial[0].serialexbaud)) + lxT ("%)"));
  else
   Window1.statusbar1.SetField (2, lxT ("Serial: ") +
-                               String::FromAscii (SERIALDEVICE) + lxT (" (ERROR)"));
+                               lxString::FromAscii (SERIALDEVICE) + lxT (" (ERROR)"));
 
-};
+}
 
 //Called to save board preferences in configuration file
 
@@ -242,10 +244,12 @@ void
 cboard_x::WritePreferences(void)
 {
  //write selected microcontroller of board_x to preferences
- Window1.saveprefs (lxT ("px_proc"), proc);
+ Window1.saveprefs (lxT ("X_proc"), Proc);
  //write switch state of board_x to preferences 
- Window1.saveprefs (lxT ("px_bt2"), String ().Format ("%i", p_BT2));
-};
+ Window1.saveprefs (lxT ("X_bt2"), lxString ().Format ("%i", p_BT2));
+ //write microcontroller clock to preferences
+ Window1.saveprefs (lxT ("X_clock"), lxString ().Format ("%2.1f", Window1.GetClock()));
+}
 
 //Called whe configuration file load  preferences 
 
@@ -253,7 +257,7 @@ void
 cboard_x::ReadPreferences(char *name, char *value)
 {
  //read switch state of board_x of preferences 
- if (!strcmp (name, "px_bt2"))
+ if (!strcmp (name, "X_bt2"))
   {
    if (value[0] == '0')
     p_BT2 = 0;
@@ -261,11 +265,16 @@ cboard_x::ReadPreferences(char *name, char *value)
     p_BT2 = 1;
   }
  //read microcontroller of preferences
- if (!strcmp (name, "px_proc"))
+ if (!strcmp (name, "X_proc"))
   {
-   proc = value;
+   Proc = value;
   }
-};
+ //read microcontroller clock
+ if (!strcmp (name, "X_clock"))
+ {
+  Window1.SetClock (atof(value));
+ }
+}
 
 
 //Event on the board
@@ -285,7 +294,7 @@ cboard_x::EvKeyPress(uint key, uint mask)
    p_BT2 ^= 1;
   }
 
-};
+}
 
 //Event on the board
 
@@ -298,7 +307,7 @@ cboard_x::EvKeyRelease(uint key, uint mask)
    p_BT1 = 1;
   }
 
-};
+}
 
 //Event on the board
 
@@ -360,7 +369,7 @@ cboard_x::EvMouseButtonPress(uint button, uint x, uint y, uint state)
     }
   }
 
-};
+}
 
 //Event on the board
 
@@ -399,7 +408,7 @@ cboard_x::EvMouseButtonRelease(uint button, uint x, uint y, uint state)
     }
   }
 
-};
+}
 
 
 //Called ever 100ms to draw board
@@ -439,7 +448,7 @@ cboard_x::Draw(CDraw *draw, double scale)
          draw->Canvas.Rectangle (1, output[i].x1,
                                  output[i].y1, output[i].x2 - output[i].x1,
                                  (int) ((output[i].y2 - output[i].y1)*0.65));
-        };
+        }
       }
     }
    else //if output shape is a circle
@@ -468,23 +477,20 @@ cboard_x::Draw(CDraw *draw, double scale)
 
      //draw a circle
      draw->Canvas.Circle (1, output[i].x1, output[i].y1, output[i].r);
-    };
+    }
 
-  };
+  }
 
  //end draw
  draw->Canvas.End ();
  draw->Update ();
-
-
 
  //RB0 mean value to gauge1
  gauge1->SetValue (0.4444 * (pic.pins[33].oavalue - 30));
  //RB1 mean value to gauge2
  gauge2->SetValue (0.44444 * (pic.pins[32].oavalue - 30));
 
-
-};
+}
 
 void
 cboard_x::Run_CPU(void)
@@ -499,19 +505,13 @@ cboard_x::Run_CPU(void)
  long int NSTEPJ = Window1.GetNSTEPJ (); //number of steps in 100ms
 
 
- //reset mean value
- /*
- for(pi=0;pi < pic.PINCOUNT;pi++)
- {
-   alm[pi]=0;
- };
-  */
+ //reset pins mean value
  memset (alm, 0, 40 * sizeof (unsigned int));
-
 
  //read pic.pins to a local variable to speed up 
  pins = pic.pins;
 
+ //Spare parts window pre process
  if (use_spare)Window5.PreProcess ();
 
  j = JUMPSTEPS; //step counter
@@ -528,7 +528,9 @@ cboard_x::Run_CPU(void)
 
     //verify if a breakpoint is reached if not run one instruction 
     if (!mplabxd_testbp ())pic_step ();
+    //Oscilloscope window process
     if (use_oscope)Window4.SetSample ();
+    //Spare parts window process
     if (use_spare)Window5.Process ();
 
     //increment mean value counter if pin is high 
@@ -537,13 +539,7 @@ cboard_x::Run_CPU(void)
 
     if (j >= JUMPSTEPS)//if number of step is bigger than steps to skip 
      {
-      /*  
-      //increment mean value counter if pin is high  
-      for(pi=0;pi < pic.PINCOUNT;pi++)
-      {
-       alm[pi]+=pins[pi].value;
-      }
-       */
+
       //set analog pin 2 (AN0) with value from scroll  
       pic_set_apin (2, ((5.0 * (scroll1->GetPosition ())) /
                         (scroll1->GetRange () - 1)));
@@ -558,7 +554,12 @@ cboard_x::Run_CPU(void)
   {
    pic.pins[pi].oavalue = (int) (((225.0 * alm[pi]) / NSTEPJ) + 30);
   }
-
+ 
+ //Spare parts window pre post process
  if (use_spare)Window5.PostProcess ();
 
 }
+
+//Register the board in PICSimLab
+board_init("X", cboard_x); 
+

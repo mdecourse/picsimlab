@@ -33,18 +33,20 @@
 class cpart_leds:public part
 {
    public:
-      String GetName(void){return lxT("LEDs");};
+      lxString GetName(void){return lxT("LEDs");};
+      lxString GetHelpURL(void){return lxT("LEDs.html");};
+      lxString GetAboutInfo(void){return lxT("L.C. Gamboa \n <lcgamboa@yahoo.com>");};            
       cpart_leds(unsigned x, unsigned y);
       ~cpart_leds(void);
       void Draw(void);
-      String GetPictureFileName(void){return lxT("LEDs.png");};
-      String GetInputMapFile(void){return lxT("LEDs_i.map");};
-      String GetOutputMapFile(void){return lxT("LEDs_o.map");};
-      String GetPropertiesWindowFile(void){return lxT("LEDs.lxrad");};
-      void ConfigurePropertiesWindow(CPWindow *  wprop);
-      void ReadPropertiesWindow(void);
-      String WritePreferences(void);
-      void ReadPreferences(String value);
+      lxString GetPictureFileName(void){return lxT("leds/LEDs.png");};
+      lxString GetInputMapFile(void){return lxT("leds/LEDs_i.map");};
+      lxString GetOutputMapFile(void){return lxT("leds/LEDs_o.map");};
+      lxString GetPropertiesWindowFile(void){return lxT("leds/LEDs.lxrad");};
+      void ConfigurePropertiesWindow(CPWindow *  WProp);
+      void ReadPropertiesWindow(CPWindow * WProp);
+      lxString WritePreferences(void);
+      void ReadPreferences(lxString value);
       unsigned short get_in_id(char * name);
       unsigned short get_out_id(char * name);
      private:

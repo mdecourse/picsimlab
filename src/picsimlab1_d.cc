@@ -110,7 +110,7 @@ CPWindow1::CPWindow1(void)
   combo1.SetVisible(1);
   combo1.SetColor(lxT("#000001"));
   combo1.SetPopupMenu(NULL);
-  combo1.SetItems(lxT("40,32,20,16,10,8,4,2,1,"));
+  combo1.SetItems(lxT("64,48,40,32,20,16,10,8,4,2,1,"));
   combo1.SetText(lxT("2"));
   combo1.SetReadOnly(0);
   combo1.EvOnComboChange=EVONCOMBOCHANGE & CPWindow1::combo1_EvOnComboChange;
@@ -177,7 +177,7 @@ CPWindow1::CPWindow1(void)
   menu1_Tools.SetName(lxT("menu1_Tools"));
   menu1_Tools.SetTag(0);
   menu1_Tools.SetText(lxT("Tools"));
-  menu1_Tools.SetMenuItems(lxT("Serial Term,Serial Remote Tank,Esp8266 Modem Simulator,"));
+  menu1_Tools.SetMenuItems(lxT("Serial Term,Serial Remote Tank,Esp8266 Modem Simulator,Arduino Bootloader,"));
   menu1.CreateChild(&menu1_Tools);
   //menu1_Help
   menu1_Help.SetFOwner(this);
@@ -185,7 +185,7 @@ CPWindow1::CPWindow1(void)
   menu1_Help.SetName(lxT("menu1_Help"));
   menu1_Help.SetTag(0);
   menu1_Help.SetText(lxT("Help"));
-  menu1_Help.SetMenuItems(lxT("Contents,Examples,About,"));
+  menu1_Help.SetMenuItems(lxT("Contents,Board,Examples,About Board,About PICSimLab,"));
   menu1.CreateChild(&menu1_Help);
   //menu1_File_LoadHex
   menu1_File_LoadHex.SetFOwner(this);
@@ -207,6 +207,16 @@ CPWindow1::CPWindow1(void)
   menu1_File_ReloadLast.SetSubMenu(NULL);
   menu1_File_ReloadLast.EvMenuActive=EVMENUACTIVE & CPWindow1::menu1_File_ReloadLast_EvMenuActive;
   menu1_File.CreateChild(&menu1_File_ReloadLast);
+  //menu1_File_SaveHex
+  menu1_File_SaveHex.SetFOwner(this);
+  menu1_File_SaveHex.SetClass(lxT("CItemMenu"));
+  menu1_File_SaveHex.SetName(lxT("menu1_File_SaveHex"));
+  menu1_File_SaveHex.SetTag(0);
+  menu1_File_SaveHex.SetText(lxT("Save Hex"));
+  menu1_File_SaveHex.SetEnable(1);
+  menu1_File_SaveHex.SetSubMenu(NULL);
+  menu1_File_SaveHex.EvMenuActive=EVMENUACTIVE & CPWindow1::menu1_File_SaveHex_EvMenuActive;
+  menu1_File.CreateChild(&menu1_File_SaveHex);
   //menu1_File_Configure
   menu1_File_Configure.SetFOwner(this);
   menu1_File_Configure.SetClass(lxT("CItemMenu"));
@@ -297,6 +307,16 @@ CPWindow1::CPWindow1(void)
   menu1_Tools_Esp8266ModemSimulator.SetSubMenu(NULL);
   menu1_Tools_Esp8266ModemSimulator.EvMenuActive=EVMENUACTIVE & CPWindow1::menu1_Tools_Esp8266ModemSimulator_EvMenuActive;
   menu1_Tools.CreateChild(&menu1_Tools_Esp8266ModemSimulator);
+  //menu1_Tools_ArduinoBootloader
+  menu1_Tools_ArduinoBootloader.SetFOwner(this);
+  menu1_Tools_ArduinoBootloader.SetClass(lxT("CItemMenu"));
+  menu1_Tools_ArduinoBootloader.SetName(lxT("menu1_Tools_ArduinoBootloader"));
+  menu1_Tools_ArduinoBootloader.SetTag(0);
+  menu1_Tools_ArduinoBootloader.SetText(lxT("Arduino Bootloader"));
+  menu1_Tools_ArduinoBootloader.SetEnable(1);
+  menu1_Tools_ArduinoBootloader.SetSubMenu(NULL);
+  menu1_Tools_ArduinoBootloader.EvMenuActive=EVMENUACTIVE & CPWindow1::menu1_Tools_ArduinoBootloader_EvMenuActive;
+  menu1_Tools.CreateChild(&menu1_Tools_ArduinoBootloader);  
   //menu1_Help_Contents
   menu1_Help_Contents.SetFOwner(this);
   menu1_Help_Contents.SetClass(lxT("CItemMenu"));
@@ -307,6 +327,16 @@ CPWindow1::CPWindow1(void)
   menu1_Help_Contents.SetSubMenu(NULL);
   menu1_Help_Contents.EvMenuActive=EVMENUACTIVE & CPWindow1::menu1_Help_Contents_EvMenuActive;
   menu1_Help.CreateChild(&menu1_Help_Contents);
+  //menu1_Help_Board
+  menu1_Help_Board.SetFOwner(this);
+  menu1_Help_Board.SetClass(lxT("CItemMenu"));
+  menu1_Help_Board.SetName(lxT("menu1_Help_Board"));
+  menu1_Help_Board.SetTag(0);
+  menu1_Help_Board.SetText(lxT("Board"));
+  menu1_Help_Board.SetEnable(1);
+  menu1_Help_Board.SetSubMenu(NULL);
+  menu1_Help_Board.EvMenuActive=EVMENUACTIVE & CPWindow1::menu1_Help_Board_EvMenuActive;
+  menu1_Help.CreateChild(&menu1_Help_Board);
   //menu1_Help_Examples
   menu1_Help_Examples.SetFOwner(this);
   menu1_Help_Examples.SetClass(lxT("CItemMenu"));
@@ -317,16 +347,26 @@ CPWindow1::CPWindow1(void)
   menu1_Help_Examples.SetSubMenu(NULL);
   menu1_Help_Examples.EvMenuActive=EVMENUACTIVE & CPWindow1::menu1_Help_Examples_EvMenuActive;
   menu1_Help.CreateChild(&menu1_Help_Examples);
-  //menu1_Help_About
-  menu1_Help_About.SetFOwner(this);
-  menu1_Help_About.SetClass(lxT("CItemMenu"));
-  menu1_Help_About.SetName(lxT("menu1_Help_About"));
-  menu1_Help_About.SetTag(0);
-  menu1_Help_About.SetText(lxT("About"));
-  menu1_Help_About.SetEnable(1);
-  menu1_Help_About.SetSubMenu(NULL);
-  menu1_Help_About.EvMenuActive=EVMENUACTIVE & CPWindow1::menu1_Help_About_EvMenuActive;
-  menu1_Help.CreateChild(&menu1_Help_About);
+  //menu1_Help_About_Board
+  menu1_Help_About_Board.SetFOwner(this);
+  menu1_Help_About_Board.SetClass(lxT("CItemMenu"));
+  menu1_Help_About_Board.SetName(lxT("menu1_Help_About_Board"));
+  menu1_Help_About_Board.SetTag(0);
+  menu1_Help_About_Board.SetText(lxT("About Board"));
+  menu1_Help_About_Board.SetEnable(1);
+  menu1_Help_About_Board.SetSubMenu(NULL);
+  menu1_Help_About_Board.EvMenuActive=EVMENUACTIVE & CPWindow1::menu1_Help_About_Board_EvMenuActive;
+  menu1_Help.CreateChild(&menu1_Help_About_Board);
+  //menu1_Help_About_PICSimLab
+  menu1_Help_About_PICSimLab.SetFOwner(this);
+  menu1_Help_About_PICSimLab.SetClass(lxT("CItemMenu"));
+  menu1_Help_About_PICSimLab.SetName(lxT("menu1_Help_About_PICSimLab"));
+  menu1_Help_About_PICSimLab.SetTag(0);
+  menu1_Help_About_PICSimLab.SetText(lxT("About PICSimLab"));
+  menu1_Help_About_PICSimLab.SetEnable(1);
+  menu1_Help_About_PICSimLab.SetSubMenu(NULL);
+  menu1_Help_About_PICSimLab.EvMenuActive=EVMENUACTIVE & CPWindow1::menu1_Help_About_PICSimLab_EvMenuActive;
+  menu1_Help.CreateChild(&menu1_Help_About_PICSimLab);
   //statusbar1
   statusbar1.SetFOwner(this);
   statusbar1.SetClass(lxT("CStatusbar"));
@@ -386,6 +426,8 @@ mcupwr=1;
 mcurst=0;
 mcudbg=0;
 debug=0;
+debug_type=0;
+debug_port=1234;
 osc_on= 0;
 spare_on= 0;
 status.status=0;
@@ -411,17 +453,7 @@ pboard=NULL;
 cpustate=CPU_RUNNING;
 
 tgo=0;
- 
-
- 
-  for(int i=0; i <BOARDS_LAST; i++)
-    {
-       MBoard[i].SetFOwner(this);
-       MBoard[i].SetName("Board_"+itoa(i));
-       MBoard[i].SetText(itoa(i)+lxT(" ")+boards_list[i]);
-       MBoard[i].EvMenuActive=EVMENUACTIVE & CPWindow1::menu1_EvBoard;
-       menu1_Board.CreateChild(&MBoard[i]);
-    }    
+   
 
 #ifdef NO_TOOLS
    menu1.DestroyChild (&menu1_Tools);

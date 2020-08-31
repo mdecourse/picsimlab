@@ -4,7 +4,7 @@
 
    ########################################################################
 
-   Copyright (c) : 2010-2015  Luis Claudio Gambôa Lopes
+   Copyright (c) : 2010-2020  Luis Claudio Gambôa Lopes
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -33,21 +33,24 @@
 class cpart_pbuttons:public part
 {
    public:
-      String GetName(void){return lxT("Push buttons");};
+      lxString GetName(void){return lxT("Push buttons");};
+      lxString GetHelpURL(void){return lxT("Push_Buttons.html");};
+      lxString GetAboutInfo(void){return lxT("L.C. Gamboa \n <lcgamboa@yahoo.com>");};            
       cpart_pbuttons(unsigned x, unsigned y);
       ~cpart_pbuttons(void);
       void Draw(void);
-      void Process(void);
-      String GetPictureFileName(void){return lxT("push_buttons.png");};
-      String GetInputMapFile(void){return lxT("push_buttons_i.map");};
-      String GetOutputMapFile(void){return lxT("push_buttons_o.map");};
-      String GetPropertiesWindowFile(void){return lxT("push_buttons.lxrad");};
+      void PreProcess(void);
+      lxString GetPictureFileName(void){return lxT("pbuttons/push_buttons.png");};
+      lxString GetInputMapFile(void){return lxT("pbuttons/push_buttons_i.map");};
+      lxString GetOutputMapFile(void){return lxT("pbuttons/push_buttons_o.map");};
+      lxString GetPropertiesWindowFile(void){return lxT("pbuttons/push_buttons.lxrad");};
+      void Reset(void); 
       void EvMouseButtonPress(uint button, uint x, uint y,uint state);
       void EvMouseButtonRelease(uint button, uint x, uint y,uint state);
-      void ConfigurePropertiesWindow(CPWindow *  wprop);
-      void ReadPropertiesWindow(void);
-      String WritePreferences(void);
-      void ReadPreferences(String value);
+      void ConfigurePropertiesWindow(CPWindow *  WProp);
+      void ReadPropertiesWindow(CPWindow * WProp);
+      lxString WritePreferences(void);
+      void ReadPreferences(lxString value);
       unsigned short get_in_id(char * name);
       unsigned short get_out_id(char * name);
     private:

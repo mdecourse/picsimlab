@@ -31,6 +31,9 @@
 #include"picsimlab5.h"
 #include"picsimlab5_d.cc"
 
+#ifdef __EMSCRIPTEN__
+#include<emscripten.h>
+#endif
 
 CPWindow5 Window5;
 
@@ -45,14 +48,14 @@ CPWindow5::_EvOnShow(CControl * control)
 
  timer1.SetRunState (1);
 
-};
+}
 
 void
 CPWindow5::menu1_EvMenuActive(CControl * control)
 {
  PartToCreate = ((CItemMenu*) control)->GetText ();
  lxSetCursor (lxCursor (lxCURSOR_CROSS));
-};
+}
 
 void
 CPWindow5::_EvOnCreate(CControl * control)
@@ -60,7 +63,16 @@ CPWindow5::_EvOnCreate(CControl * control)
  if (LoadConfigFile.length () > 0)
   LoadConfig (LoadConfigFile);
 
-};
+
+ for (int i = 0; i < NUM_PARTS; i++)
+  {
+   MParts[i].SetFOwner (this);
+   MParts[i].SetName (parts_list[i].name);
+   MParts[i].SetText (parts_list[i].name);
+   MParts[i].EvMenuActive = EVMENUACTIVE & CPWindow5::menu1_EvMenuActive;
+   menu1_Add.CreateChild (&MParts[i]);
+  }
+}
 
 void
 CPWindow5::draw1_EvMouseButtonPress(CControl * control, uint button, uint x, uint y, uint state)
@@ -79,7 +91,7 @@ CPWindow5::draw1_EvMouseButtonPress(CControl * control, uint button, uint x, uin
        pmenu2.SetX (x * scale);
        pmenu2.SetY (y * scale);
 #if defined(__WXGTK__)||defined(__WXMSW__)
-       SetPopupMenu (&pmenu2); //FIXME problemas com as propriedades
+       SetPopupMenu (&pmenu2);
 #else
        draw1.SetPopupMenu (&pmenu2);
 #endif
@@ -101,14 +113,13 @@ CPWindow5::draw1_EvMouseButtonPress(CControl * control, uint button, uint x, uin
     }
    else
     {
+     parts[partsc]->id = partsc;
      partsc++;
     }
    PartToCreate = "";
    _EvOnShow (control);
   }
-
-
-};
+}
 
 void
 CPWindow5::draw1_EvMouseButtonRelease(CControl * control, uint button, uint x, uint y, uint state)
@@ -131,7 +142,7 @@ CPWindow5::draw1_EvMouseButtonRelease(CControl * control, uint button, uint x, u
      return;
     }
   }
-};
+}
 
 void
 CPWindow5::pmenu2_Properties_EvMenuActive(CControl * control)
@@ -160,7 +171,7 @@ CPWindow5::PropClose(int tag)
 {
  if (tag)
   {
-   parts[PartSelected]->ReadPropertiesWindow ();
+   parts[PartSelected]->ReadPropertiesWindow (&wprop);
   }
  wprop.HideExclusive ();
  //wprop.SetCanDestroy (true);
@@ -179,8 +190,8 @@ CPWindow5::PropComboChange(CCombo * control)
  Window5.wprop.HideExclusive ();
  //Window5.wprop.SetCanDestroy (true);
  Window5.wprop.WDestroy ();
- 
- Window5.parts[Window5.PartSelected]->ComboChange( control->GetText ());
+
+ Window5.parts[Window5.PartSelected]->ComboChange (control->GetText ());
 
  Window5.pmenu2_Properties_EvMenuActive (this);
 }
@@ -238,8 +249,7 @@ CPWindow5::draw1_EvMouseMove(CControl * control, uint button, uint x, uint y, ui
       }
     }
   }
-
-};
+}
 
 void
 CPWindow5::draw1_EvKeyboardPress(CControl * control, const uint key, const uint hkey, const uint mask)
@@ -261,8 +271,7 @@ CPWindow5::draw1_EvKeyboardPress(CControl * control, const uint key, const uint 
     }
    break;
   }
-
-};
+}
 
 void
 CPWindow5::draw1_EvKeyboardRelease(CControl * control, const uint key, const uint hkey, const uint mask)
@@ -271,14 +280,17 @@ CPWindow5::draw1_EvKeyboardRelease(CControl * control, const uint key, const uin
   {
    parts[i]->EvKeyRelease (key, mask);
   }
-};
+}
 
 bool
-CPWindow5::SaveConfig(String fname)
+CPWindow5::SaveConfig(lxString fname)
 {
- String temp;
+ lxString temp;
 
- CStringList prefs;
+ lxStringList prefs;
+
+ if (GetWin () == NULL)return 0;
+
  prefs.Clear ();
 
  temp.Printf ("scale,0,0:%f", scale);
@@ -294,17 +306,15 @@ CPWindow5::SaveConfig(String fname)
 }
 
 bool
-CPWindow5::LoadConfig(String fname)
+CPWindow5::LoadConfig(lxString fname)
 {
  char name[256];
  char temp[256];
  unsigned int x, y;
- CStringList prefs;
+ lxStringList prefs;
 
- IOPinsCount = 0;
  pboard = Window1.GetBoard ();
 
- GetPinsNames ();
 
  for (int i = 0; i < 256; i++)
   {
@@ -314,10 +324,9 @@ CPWindow5::LoadConfig(String fname)
     }
    else
     {
-     PinNames[i] = "NC";
+     PinNames[i] = "";
     }
   }
-
 
 
  PinsCount = pboard->MGetPinCount ();
@@ -355,6 +364,7 @@ CPWindow5::LoadConfig(String fname)
      else if ((parts[partsc_] = create_part (name, x, y)))
       {
        parts[partsc_]->ReadPreferences (temp);
+       parts[partsc_]->id = partsc_;
        partsc_++;
       }
      else
@@ -389,10 +399,12 @@ CPWindow5::menu1_File_Newconfiguration_EvMenuActive(CControl * control)
 {
  if (partsc > 0)
   {
+#ifndef __EMSCRIPTEN__
    if (Dialog ("Save current configuration?"))
     {
      menu1_File_Saveconfiguration_EvMenuActive (control);
     }
+#endif   
    DeleteParts ();
   }
 }
@@ -401,14 +413,26 @@ void
 CPWindow5::menu1_File_Saveconfiguration_EvMenuActive(CControl * control)
 {
  filedialog1.SetType (lxFD_SAVE | lxFD_CHANGE_DIR);
+ fdtype = -1;
+#ifdef __EMSCRIPTEN__
+ filedialog1.SetDir ("/tmp/");
+ filedialog1.SetFileName ("untitled.pcf");
+ filedialog1_EvOnClose (1);
+#else 
  filedialog1.Run ();
+#endif 
 }
 
 void
 CPWindow5::menu1_File_Loadconfiguration_EvMenuActive(CControl * control)
 {
+#ifdef __EMSCRIPTEN__
+   EM_ASM_ ({toggle_load_panel();});
+#else	
  filedialog1.SetType (lxFD_OPEN | lxFD_CHANGE_DIR);
+ fdtype = -1;
  filedialog1.Run ();
+#endif 
 }
 
 void
@@ -436,6 +460,15 @@ CPWindow5::PostProcess(void)
  for (int i = 0; i < partsc; i++)
   {
    parts[i]->PostProcess ();
+  }
+}
+
+void
+CPWindow5::Reset(void)
+{
+ for (int i = 0; i < partsc; i++)
+  {
+   parts[i]->Reset ();
   }
 }
 
@@ -476,11 +509,23 @@ CPWindow5::pmenu2_Delete_EvMenuActive(CControl * control)
 }
 
 void
+CPWindow5::pmenu2_Help_EvMenuActive(CControl * control)
+{
+ lxLaunchDefaultBrowser (lxT ("https://lcgamboa.github.io/picsimlab/") + parts[PartSelected]->GetHelpURL ());
+}
+
+void
+CPWindow5::pmenu2_About_EvMenuActive(CControl * control)
+{
+ Message_sz (lxT ("Part ") + parts[PartSelected]->GetName () + lxT ("\nDeveloped by ") + parts[PartSelected]->GetAboutInfo (), 400, 200);
+}
+
+void
 CPWindow5::menu1_Help_Contents_EvMenuActive(CControl * control)
 {
 #ifdef EXT_BROWSER
  //lxLaunchDefaultBrowser(lxT("file://")+share + lxT ("docs/picsimlab.html"));
- lxLaunchDefaultBrowser (lxT ("https://lcgamboa.github.io/picsimlab/"));
+ lxLaunchDefaultBrowser (lxT ("https://lcgamboa.github.io/picsimlab/Spare_Parts.html"));
 #else 
  Window2.html1.SetLoadFile (Window1.GetSharePath () + lxT ("docs/picsimlab.html"));
  Window2.Show ();
@@ -490,7 +535,7 @@ CPWindow5::menu1_Help_Contents_EvMenuActive(CControl * control)
 void
 CPWindow5::menu1_Help_About_EvMenuActive(CControl * control)
 {
- Message (lxT ("Developed by L.C. Gamboa\n <lcgamboa@yahoo.com>\n Version: ") + String (lxT (_VERSION_)));
+ Message_sz (lxT ("Developed by L.C. Gamboa\n <lcgamboa@yahoo.com>\n Version: ") + lxString (lxT (_VERSION_)), 400, 200);
 }
 
 void
@@ -522,20 +567,54 @@ void
 CPWindow5::filedialog1_EvOnClose(int retId)
 {
 
- if (retId && (filedialog1.GetType () == (lxFD_SAVE | lxFD_CHANGE_DIR)))
+ if (retId && (fdtype == -1))
   {
-   if (lxFileExists (filedialog1.GetFileName ()))
-    {
 
-     if (!Dialog (String ("Overwriting file: ") + basename (filedialog1.GetFileName ()) + "?"))
-      return;
+   if ((filedialog1.GetType () == (lxFD_SAVE | lxFD_CHANGE_DIR)))
+    {
+     if (lxFileExists (filedialog1.GetFileName ()))
+      {
+
+       if (!Dialog (lxString ("Overwriting file: ") + basename (filedialog1.GetFileName ()) + "?"))
+        return;
+      }
+     SaveConfig (filedialog1.GetFileName ());
+#ifdef __EMSCRIPTEN__
+     EM_ASM_ ({
+              var filename = UTF8ToString ($0);
+              var buf = FS.readFile (filename);
+              var blob = new Blob ([buf],
+               {
+                "type" : "application/octet-stream" });
+              var text = URL.createObjectURL (blob);
+
+              var element = document.createElement ('a');
+              element.setAttribute ('href', text);
+              element.setAttribute ('download', filename);
+
+              element.style.display = 'none';
+              document.body.appendChild (element);
+
+              element.click ();
+
+              document.body.removeChild (element);
+              URL.revokeObjectURL (text);
+     }, filedialog1.GetFileName ().c_str ());
+#endif      
     }
-   SaveConfig (filedialog1.GetFileName ());
+
+   if ((filedialog1.GetType () == (lxFD_OPEN | lxFD_CHANGE_DIR)))
+    {
+     LoadConfig (filedialog1.GetFileName ());
+    }
   }
 
- if (retId && (filedialog1.GetType () == (lxFD_OPEN | lxFD_CHANGE_DIR)))
+ if (fdtype != -1)
   {
-   LoadConfig (filedialog1.GetFileName ());
+   parts[fdtype]->filedialog_EvOnClose (retId);
+   fdtype = -1;
+   filedialog1.SetFileName (oldfname);
+   filedialog1.SetFilter (lxT ("PICSimLab Config. (*.pcf)|*.pcf"));
   }
 }
 
@@ -558,11 +637,11 @@ CPWindow5::Get_i2c_bus(unsigned char pin)
   return 0;
 }
 
-String
+lxString
 CPWindow5::GetPinsNames(void)
 {
- String Items = "0  NC,";
- String spin;
+ lxString Items = "0  NC,";
+ lxString spin;
 
  for (int i = 1; i <= pboard->MGetPinCount (); i++)
   {
@@ -573,18 +652,28 @@ CPWindow5::GetPinsNames(void)
      Items = Items + itoa (i) + "  " + spin + ",";
     }
   }
- for (int i = 0; i < IOPinsCount; i++)
+ for (int i = IOINIT; i < 256; i++)
   {
-   spin = PinNames[IOINIT + i];
-   Items = Items + itoa (i + IOINIT) + "  " + spin + ",";
+   spin = PinNames[i];
+   if (spin.length () > 0)
+    {
+     Items = Items + itoa (i) + "  " + spin + ",";
+    }
   }
  return Items;
 }
 
-String
+lxString
 CPWindow5::GetPinName(unsigned char pin)
 {
- return PinNames[pin];
+ if (pin <= pboard->MGetPinCount ())
+  {
+   return PinNames[pin];
+  }
+ else
+  {
+   return PinNames[pin] + "-" + itoa (pin);
+  }
 }
 
 const picpin *
@@ -596,16 +685,37 @@ CPWindow5::GetPinsValues(void)
 void
 CPWindow5::SetPin(unsigned char pin, unsigned char value)
 {
-
- if ((Pins[pin - 1].dir) &&((Pins[pin - 1].value != value)))
+ if (pin)
   {
-   if ((pin > PinsCount))
+   if ((Pins[pin - 1].dir) &&((Pins[pin - 1].value != value)))
     {
-     Pins[pin - 1].value = value;
+     if ((pin > PinsCount))
+      {
+       Pins[pin - 1].value = value;
+      }
+     else
+      {
+       pboard->MSetPin (pin, value);
+      }
     }
-   else
+  }
+}
+
+void
+CPWindow5::SetPinDOV(unsigned char pin, unsigned char ovalue)
+{
+ if (pin)
+  {
+   if (Pins[pin - 1].ovalue != ovalue)
     {
-     pboard->MSetPin (pin, value);
+     if ((pin > PinsCount))
+      {
+       Pins[pin - 1].ovalue = ovalue;
+      }
+     else
+      {
+       pboard->MSetPinDOV (pin, ovalue);
+      }
     }
   }
 }
@@ -624,7 +734,17 @@ CPWindow5::WritePinA(unsigned char pin, unsigned char avalue)
 {
  if (pin > PinsCount)
   {
-   Pins[pin - 1].oavalue = avalue;
+   Pins[pin - 1].avalue = avalue;
+  }
+}
+
+void
+CPWindow5::WritePinOA(unsigned char pin, unsigned short oavalue)
+{
+ if (pin > PinsCount)
+  {
+   if (oavalue > 255)oavalue = 255;
+   Pins[pin - 1].oavalue = oavalue;
   }
 }
 
@@ -639,11 +759,48 @@ CPWindow5::SetAPin(unsigned char pin, float value)
 }
 
 unsigned char
-CPWindow5::RegisterIOpin(String pname)
+CPWindow5::RegisterIOpin(lxString pname, unsigned char pin)
 {
- unsigned char pin = IOPinsCount + IOINIT;
- PinNames[pin] = pname;
- IOPinsCount++;
+ unsigned char ppin = IOINIT;
 
- return pin;
+ if (pin >= IOINIT)
+  {
+   ppin = pin;
+  }
+#ifdef LEGACY081
+ else if (pin >= 70) //legacy
+  {
+   ppin = pin;
+  }
+#endif
+
+ while ((PinNames[ppin].length () > 0)&&(ppin))
+  {
+   ppin++;
+  }
+
+ if (ppin)
+  {
+   PinNames[ppin] = pname;
+  }
+
+ return ppin;
+}
+
+unsigned char
+CPWindow5::UnregisterIOpin(unsigned char pin)
+{
+ if (PinNames[pin].length () > 0)
+  {
+   PinNames[pin] = "";
+   return 1;
+  }
+ return 0;
+}
+
+void
+CPWindow5::Setfdtype(int value)
+{
+ fdtype = value;
+ oldfname = filedialog1.GetFileName ();
 }

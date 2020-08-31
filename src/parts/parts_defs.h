@@ -24,17 +24,33 @@
    ######################################################################## */
 
 #ifndef PARTS_DEFS_H
-#define	PARTS_DEFS_H
+#define PARTS_DEFS_H
 
 #include"part.h" 
 
-#define MAX_PARTS 100
+#define MAX_PARTS 50
 
-#define NUM_PARTS 21
+extern int NUM_PARTS;
 
-extern const char parts_list[NUM_PARTS][30];
+#define part_init(name, function)  \
+static part * function ## _create(unsigned int x, unsigned int y){\
+   return new function ( x ,y);};\
+    static void __attribute__((constructor)) function ## _init(void);\
+    static void function ## _init(void){\
+    part_register(name , function ## _create );}
 
-part * create_part(String name, unsigned int x, unsigned int y);
+typedef part * (* part_create_func)(unsigned int x, unsigned int y);
 
-#endif	/* PARTS_DEFS_H */
+void part_register(const char * name, part_create_func pcreate);
+
+part * create_part(lxString name, unsigned int x, unsigned int y);
+
+typedef struct {
+    char name[30];
+    part_create_func pcreate;
+} part_desc;
+
+extern part_desc parts_list[MAX_PARTS];
+
+#endif /* PARTS_DEFS_H */
 

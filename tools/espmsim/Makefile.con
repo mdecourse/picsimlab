@@ -3,6 +3,7 @@ CC = g++
 #lxrad automatic generated block start, don't edit below!
 
 FLAGS = -Wall -O2 -DLINUX -DCONSOLE `lxrad-config --cxxflags`
+FLAGS+= -DEXT_BROWSER
 
 LIBS = `wx-config --libs`  
 
@@ -10,6 +11,7 @@ OBJS = cespmsim.o espmsim1.o serial.o tcp.o ../LXRAD_WX/libteste/liblxrad.a
 
 #lxrad automatic generated block end, don't edit above!
 
+exp: all
 
 all: $(OBJS)
 	$(CC) $(FLAGS) $(OBJS) -ocespmsim $(LIBS)

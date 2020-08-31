@@ -4,7 +4,7 @@
 
    ########################################################################
 
-   Copyright (c) : 2010-2018  Luis Claudio Gambôa Lopes
+   Copyright (c) : 2010-2020  Luis Claudio Gambôa Lopes
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -60,7 +60,7 @@ cpart_step::cpart_step (unsigned x, unsigned y)
  b2[0] = 0;
  b2[1] = 0;
 
-};
+}
 
 cpart_step::~cpart_step (void)
 {
@@ -117,7 +117,7 @@ cpart_step::Draw (void)
     }
 
 
-  };
+  }
 
  canvas.End ();
 
@@ -142,24 +142,41 @@ cpart_step::Process (void)
  b2[1] = b2[0];
  b2[0] = ppins[input_pins[1] - 1].value - ppins[input_pins[3] - 1].value;
 
-
- //printf("%i %i \n",b1[0],b2[0]);
-
+ /*
+ if((b1[1] != b1[0])||(b2[1] != b2[0]))
+  {
+   unsigned char code=ppins[input_pins[0] - 1].value  | (ppins[input_pins[1] - 1].value<<1) |  (ppins[input_pins[2] - 1].value<<2) |  (ppins[input_pins[3] - 1].value <<3);
+    printf("%3i %3i %3i %3i  angle=%f  0x%02X\n",b1[0],b2[0],b1[1],b2[1],angle,code);
+  }
+ */
+ 
  //foward full step
- if ((b1[0] == 1) && (b2[0] == 0) && (b1[1] == 0) && (b2[1] == -1))
+ if ((b1[0] == 1) && (b2[0] == 0) && (b1[1] == 0) && (b2[1] == -1)) //0001
   angle += STEP;
 
- if ((b1[0] == 0) && (b2[0] == 1) && (b1[1] == 1) && (b2[1] == 0))
+ if ((b1[0] == 0) && (b2[0] == 1) && (b1[1] == 1) && (b2[1] == 0)) //0010
   angle += STEP;
 
- if ((b1[0] == -1) && (b2[0] == 0) && (b1[1] == 0) && (b2[1] == 1))
+ if ((b1[0] == -1) && (b2[0] == 0) && (b1[1] == 0) && (b2[1] == 1)) //0100
   angle += STEP;
 
- if ((b1[0] == 0)&& (b2[0] == -1) && (b1[1] == -1) && (b2[1] == 0))
+ if ((b1[0] == 0)&& (b2[0] == -1) && (b1[1] == -1) && (b2[1] == 0)) //1000
+  angle += STEP;
+ 
+  //foward full step double phase
+ if ((b1[0] == 1) && (b2[0] == 1) && (b1[1] == 1) && (b2[1] == -1)) //0011
+  angle += STEP;
+
+ if ((b1[0] == -1) && (b2[0] == 1) && (b1[1] == 1) && (b2[1] == 1)) //0110
+  angle += STEP;
+
+ if ((b1[0] == -1) && (b2[0] == -1) && (b1[1] == -1) && (b2[1] == 1)) //1100
+  angle += STEP;
+
+ if ((b1[0] == 1)&& (b2[0] == -1) && (b1[1] == -1) && (b2[1] == -1)) //1001
   angle += STEP;
 
  //foward half step
-
  if ((b1[0] == 1) && (b2[0] == 0) && (b1[1] == 1) && (b2[1] == -1))
   angle += HSTEP;
 
@@ -186,18 +203,32 @@ cpart_step::Process (void)
 
 
  //backward full step
- if ((b1[1] == 1) && (b2[1] == 0) && (b1[0] == 0) && (b2[0] == -1))
+ if ((b1[0] == 0) && (b2[0] == -1) && (b1[1] == 1) && (b2[1] == 0)) //1000
   angle -= STEP;
 
- if ((b1[1] == 0) && (b2[1] == 1) && (b1[0] == 1) && (b2[0] == 0))
+ if ((b1[0] == 1) && (b2[0] == 0) && (b1[1] == 0) && (b2[1] == 1))  //0001
   angle -= STEP;
 
- if ((b1[1] == -1) && (b2[1] == 0) && (b1[0] == 0) && (b2[0] == 1))
+ if ((b1[0] == 0) && (b2[0] == 1) && (b1[1] == -1) && (b2[1] == 0)) //0010
   angle -= STEP;
 
- if ((b1[1] == 0)&& (b2[1] == -1) && (b1[0] == -1) && (b2[0] == 0))
+ if ((b1[0] == -1) && (b2[0] == 0) && (b1[1] == 0)&& (b2[1] == -1)) //0100
   angle -= STEP;
 
+ //backward full step double phase
+ if ((b1[0] == -1) && (b2[0] == -1) && (b1[1] == 1) && (b2[1] == -1)) //0011
+  angle -= STEP;
+
+ if ((b1[0] == -1) && (b2[0] == 1) && (b1[1] == -1) && (b2[1] == -1)) //0110
+  angle -= STEP;
+
+ if ((b1[0] == 1) && (b2[0] == 1) && (b1[1] == -1) && (b2[1] == 1)) //1100
+  angle -= STEP;
+
+ if ((b1[0] == 1)&& (b2[0] == -1) && (b1[1] == 1) && (b2[1] == 1)) //1001
+  angle -= STEP;
+ 
+ 
  //backward half step
  if ((b1[1] == 1) && (b2[1] == 0) && (b1[0] == 1) && (b2[0] == -1))
   angle -= HSTEP;
@@ -232,7 +263,7 @@ cpart_step::get_in_id (char * name)
 {
  printf ("Erro input '%s' don't have a valid id! \n", name);
  return -1;
-};
+}
 
 unsigned short
 cpart_step::get_out_id (char * name)
@@ -250,9 +281,9 @@ cpart_step::get_out_id (char * name)
 
  printf ("Erro output '%s' don't have a valid id! \n", name);
  return 1;
-};
+}
 
-String
+lxString
 cpart_step::WritePreferences (void)
 {
  char prefs[256];
@@ -260,72 +291,71 @@ cpart_step::WritePreferences (void)
  sprintf (prefs, "%hhu,%hhu,%hhu,%hhu", input_pins[0], input_pins[1], input_pins[2], input_pins[3]);
 
  return prefs;
-};
+}
 
 void
-cpart_step::ReadPreferences (String value)
+cpart_step::ReadPreferences (lxString value)
 {
  sscanf (value.c_str (), "%hhu,%hhu,%hhu,%hhu", &input_pins[0], &input_pins[1], &input_pins[2], &input_pins[3]);
-};
+}
 
-CPWindow * WProp_step;
 
 void
-cpart_step::ConfigurePropertiesWindow (CPWindow * wprop)
+cpart_step::ConfigurePropertiesWindow (CPWindow * WProp)
 {
- String Items = Window5.GetPinsNames ();
- String spin;
- WProp_step = wprop;
+ lxString Items = Window5.GetPinsNames ();
+ lxString spin;
 
- ((CCombo*) WProp_step->GetChildByName ("combo1"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo1"))->SetItems (Items);
  if (input_pins[0] == 0)
-  ((CCombo*) WProp_step->GetChildByName ("combo1"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo1"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[0]);
-   ((CCombo*) WProp_step->GetChildByName ("combo1"))->SetText (itoa (input_pins[0]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo1"))->SetText (itoa (input_pins[0]) + "  " + spin);
   }
 
- ((CCombo*) WProp_step->GetChildByName ("combo2"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo2"))->SetItems (Items);
  if (input_pins[1] == 0)
-  ((CCombo*) WProp_step->GetChildByName ("combo2"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo2"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[1]);
-   ((CCombo*) WProp_step->GetChildByName ("combo2"))->SetText (itoa (input_pins[1]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo2"))->SetText (itoa (input_pins[1]) + "  " + spin);
   }
 
- ((CCombo*) WProp_step->GetChildByName ("combo3"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo3"))->SetItems (Items);
  if (input_pins[2] == 0)
-  ((CCombo*) WProp_step->GetChildByName ("combo3"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo3"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[2]);
-   ((CCombo*) WProp_step->GetChildByName ("combo3"))->SetText (itoa (input_pins[2]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo3"))->SetText (itoa (input_pins[2]) + "  " + spin);
   }
 
- ((CCombo*) WProp_step->GetChildByName ("combo4"))->SetItems (Items);
+ ((CCombo*) WProp->GetChildByName ("combo4"))->SetItems (Items);
  if (input_pins[3] == 0)
-  ((CCombo*) WProp_step->GetChildByName ("combo4"))->SetText ("0  NC");
+  ((CCombo*) WProp->GetChildByName ("combo4"))->SetText ("0  NC");
  else
   {
    spin = Window5.GetPinName (input_pins[3]);
-   ((CCombo*) WProp_step->GetChildByName ("combo4"))->SetText (itoa (input_pins[3]) + "  " + spin);
+   ((CCombo*) WProp->GetChildByName ("combo4"))->SetText (itoa (input_pins[3]) + "  " + spin);
   }
 
- ((CButton*) WProp_step->GetChildByName ("button1"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
- ((CButton*) WProp_step->GetChildByName ("button1"))->SetTag (1);
+ ((CButton*) WProp->GetChildByName ("button1"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
+ ((CButton*) WProp->GetChildByName ("button1"))->SetTag (1);
 
- ((CButton*) WProp_step->GetChildByName ("button2"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
+ ((CButton*) WProp->GetChildByName ("button2"))->EvMouseButtonRelease = EVMOUSEBUTTONRELEASE & CPWindow5::PropButtonRelease;
 }
 
 void
-cpart_step::ReadPropertiesWindow (void)
+cpart_step::ReadPropertiesWindow (CPWindow * WProp)
 {
- input_pins[0] = atoi (((CCombo*) WProp_step->GetChildByName ("combo1"))->GetText ());
- input_pins[1] = atoi (((CCombo*) WProp_step->GetChildByName ("combo2"))->GetText ());
- input_pins[2] = atoi (((CCombo*) WProp_step->GetChildByName ("combo3"))->GetText ());
- input_pins[3] = atoi (((CCombo*) WProp_step->GetChildByName ("combo4"))->GetText ());
+ input_pins[0] = atoi (((CCombo*) WProp->GetChildByName ("combo1"))->GetText ());
+ input_pins[1] = atoi (((CCombo*) WProp->GetChildByName ("combo2"))->GetText ());
+ input_pins[2] = atoi (((CCombo*) WProp->GetChildByName ("combo3"))->GetText ());
+ input_pins[3] = atoi (((CCombo*) WProp->GetChildByName ("combo4"))->GetText ());
 }
 
+part_init("Step motor", cpart_step);
 

@@ -4,7 +4,7 @@
 
    ########################################################################
 
-   Copyright (c) : 2010-2018  Luis Claudio Gambôa Lopes
+   Copyright (c) : 2010-2020  Luis Claudio Gambôa Lopes
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -160,7 +160,7 @@ CPWindow4::DrawScreen (void)
 
  draw1.Canvas.End ();
 
-};
+}
 
 void
 CPWindow4::button1_EvMouseButtonClick (CControl * control, uint button, uint x, uint y, uint state)
@@ -170,7 +170,7 @@ CPWindow4::button1_EvMouseButtonClick (CControl * control, uint button, uint x, 
  ctrl = &button1;
  colordialog1.Run ();
 #endif  
-};
+}
 
 void
 CPWindow4::button2_EvMouseButtonClick (CControl * control, uint button, uint x, uint y, uint state)
@@ -180,14 +180,14 @@ CPWindow4::button2_EvMouseButtonClick (CControl * control, uint button, uint x, 
  ctrl = &button2;
  colordialog1.Run ();
 #endif
-};
+}
 
 void
 CPWindow4::draw1_EvMouseButtonClick (CControl * control, uint button, uint x, uint y, uint state)
 {
  //code here:)
  mprint (lxT ("draw1_EvMouseButtonClick\n"));
-};
+}
 
 void
 CPWindow4::SetBaseTimer (void)
@@ -212,7 +212,7 @@ CPWindow4::SetBaseTimer (void)
  combo3.DeleteItems ();
  for (int i = 1; i <= PinCount; i++)
   {
-   String spin = pboard->MGetPinName (i);
+   lxString spin = pboard->MGetPinName (i);
 
    if (spin.Cmp (lxT ("error")))
     {
@@ -223,7 +223,7 @@ CPWindow4::SetBaseTimer (void)
 
  if (chp[0] <= PinCount)
   {
-   String spin = pboard->MGetPinName (chp[0]);
+   lxString spin = pboard->MGetPinName (chp[0]);
    combo2.SetText (itoa (chp[0]) + "  " + spin);
   }
  else
@@ -231,7 +231,7 @@ CPWindow4::SetBaseTimer (void)
 
  if (chp[1] <= PinCount)
   {
-   String spin = pboard->MGetPinName (chp[1]);
+   lxString spin = pboard->MGetPinName (chp[1]);
    combo3.SetText (itoa (chp[1]) + "  " + spin);
   }
  else
@@ -254,13 +254,13 @@ CPWindow4::SetSample (void)
  const picpin * ppins = Window1.GetBoard ()->MGetPinsValues ();
 
  if (!run)return;
-
- if (ppins[chpin[0]].ptype == PT_ANALOG)
+ 
+ if ((ppins[chpin[0]].ptype == PT_ANALOG)&&(ppins[chpin[0]].dir == PD_IN))
   pins[0] = ppins[chpin[0]].avalue;
  else
   pins[0] = ppins[chpin[0]].value * 5.0;
 
- if (ppins[chpin[1]].ptype == PT_ANALOG)
+ if ((ppins[chpin[1]].ptype == PT_ANALOG)&&(ppins[chpin[1]].dir == PD_IN))
   pins[1] = ppins[chpin[1]].avalue;
  else
   pins[1] = ppins[chpin[1]].value * 5.0;
@@ -335,19 +335,19 @@ CPWindow4::spind5_EvOnChangeSpinDouble (CControl * control)
  spind6.SetValue (0);
  toffset = WMAX / 2;
  //printf("Dt=%e Rt=%e  Rt/Dt=%f   xz=%f\n",Dt,Rt,Rt/Dt,xz);
-};
+}
 
 void
 CPWindow4::togglebutton5_EvOnToggleButton (CControl * control)
 {
  usetrigger = togglebutton5.GetCheck ();
-};
+}
 
 void
 CPWindow4::spind7_EvOnChangeSpinDouble (CControl * control)
 {
  triggerlv = spind7.GetValue ();
-};
+}
 
 void
 CPWindow4::timer1_EvOnTime (CControl * control)
@@ -365,18 +365,17 @@ void
 CPWindow4::combo2_EvOnComboChange (CControl * control)
 {
  chpin[0] = atoi (combo2.GetText ()) - 1;
-};
+}
 
 void
 CPWindow4::combo3_EvOnComboChange (CControl * control)
 {
  chpin[1] = atoi (combo3.GetText ()) - 1;
-};
+}
 
 void
 CPWindow4::WritePreferences (void)
 {
- //TODO write all preferences
  Window1.saveprefs (lxT ("osc_scale1"), ftoa (spind1.GetValue ()));
  Window1.saveprefs (lxT ("osc_offset1"), ftoa (spind2.GetValue ()));
  Window1.saveprefs (lxT ("osc_on1"), itoa (togglebutton1.GetCheck ()));
@@ -397,7 +396,7 @@ CPWindow4::WritePreferences (void)
  Window1.saveprefs (lxT ("osc_tch"), combo1.GetText ());
  Window1.saveprefs (lxT ("osc_tlevel"), ftoa (spind7.GetValue ()));
  Window1.saveprefs (lxT ("osc_position"), itoa (GetX ()) + lxT (",") + itoa (GetY ()));
-};
+}
 
 void
 CPWindow4::ReadPreferences (char *name, char *value)
@@ -492,7 +491,7 @@ CPWindow4::ReadPreferences (char *name, char *value)
    SetX (i);
    SetY (j);
   }
-};
+}
 
 void
 CPWindow4::_EvOnDestroy (CControl * control) { }
@@ -520,7 +519,7 @@ CPWindow4::spind6_EvOnChangeSpinDouble (CControl * control)
 
 
  toffset = (WMAX / 2) - (((WMAX / 2) * spind6.GetValue ()) / (5 * spind5.GetValue ()));
-};
+}
 
 //autoset
 
@@ -559,7 +558,7 @@ CPWindow4::button3_EvMouseButtonClick (CControl * control, uint button, uint x, 
    spind4.SetValue (-6.0); //ch2 level
    togglebutton3.SetCheck (0); //ch1 inverse off
    togglebutton4.SetCheck (0); //ch2 inverse off
-   //TODO select the better channel trigguer
+   //TODO select the better mode for channel trigguer
    combo1.SetText ("1"); //trigguer channel
    break;
   }
@@ -591,7 +590,7 @@ CPWindow4::togglebutton6_EvOnToggleButton (CControl * control)
  combo1.SetEnable (run);
  combo2.SetEnable (run);
  combo3.SetEnable (run);
-};
+}
 
 //save PNG
 
