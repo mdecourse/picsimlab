@@ -95,6 +95,10 @@ board_picsim::MInit(const char * processor, const char * fname, float freq)
   {
    pic.config[1] |= 0x2000;
   }
+ else if (pic.processor == getprocbyname ("PIC18F46J50"))
+  {
+   pic.config[0] |= 0x0080;
+  }
  else
   {
    printf ("PICSimLab: PIC 0x%04X not supported in picsimlab!!\n", pic.processor);
@@ -308,7 +312,14 @@ board_picsim::DBGGetRAMSize(void)
 unsigned int
 board_picsim::DBGGetROMSize(void)
 {
- return pic.ROMSIZE * 2;
+ if (pic.processor == getprocbyname ("PIC18F46J50"))
+  {
+   return (pic.ROMSIZE - 4)*2; //anomalous size!!! 
+  }
+ else
+  {
+   return pic.ROMSIZE * 2;
+  }
 }
 
 unsigned int

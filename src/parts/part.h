@@ -155,8 +155,23 @@ class part
      /**
      * @brief  Used by properties window combos
      */ 
-      virtual void ComboChange(lxString value){}; 
-                      
+      virtual void ComboChange(CCombo * control, lxString value){}; 
+
+     /**
+     * @brief  Used by windows of parts 
+     */ 
+      virtual void ButtonEvent(CControl * control, uint button, uint x, uint y, uint state){};
+     
+     /**
+     * @brief  Used by windows of parts 
+     */ 
+      virtual void KeyEvent(CControl * control, uint keysym, uint ukeysym, uint state){};
+
+     /**
+     * @brief  Used by windows of parts 
+     */  
+      virtual void Event(CControl * control){};
+
      /**
      * @brief  Used by properties window filedialogs
      */ 
@@ -212,8 +227,24 @@ class part
      */ 
       int PointInside(int x, int y); 
       
-      int id; ///< part ID
+      
+     /**
+     * @brief  Return the orientation to draw
+     */ 
+      int GetOrientation(void);
+     
+     /**
+     * @brief  Set the orientation to draw
+     */ 
+      virtual void SetOrientation(int orientation);
+      
+     /**
+     * @brief  Set the part ID, don't be called by user
+     */ 
+      virtual void SetId(int _id){id = _id;};
+
  protected:
+      int id; ///< part ID
       input_t  input[100];  ///< input map elements
       output_t output[100]; ///< output map elements 
       int inputc;           ///< input map elements counter 
@@ -225,11 +256,17 @@ class part
       lxBitmap * Bitmap;    ///< Internal Bitmap   
       CCanvas canvas;       ///< Internal Canvas to draw in bitmap
       unsigned int refresh; ///< redraw is needed 
+      int orientation;      ///< orientation to draw part
       
-           /**
+     /**
      * @brief  read maps
      */  
-      void ReadMaps(void);  ///<  
+      void ReadMaps(void);  
+      
+           /**
+     * @brief  Return if point x,y is inside of input 
+     */ 
+      int PointInside(int x, int y, input_t input); 
             
  private:      
                      

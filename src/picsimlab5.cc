@@ -113,7 +113,7 @@ CPWindow5::draw1_EvMouseButtonPress(CControl * control, uint button, uint x, uin
     }
    else
     {
-     parts[partsc]->id = partsc;
+     parts[partsc]->SetId (partsc);
      partsc++;
     }
    PartToCreate = "";
@@ -191,14 +191,47 @@ CPWindow5::PropComboChange(CCombo * control)
  //Window5.wprop.SetCanDestroy (true);
  Window5.wprop.WDestroy ();
 
- Window5.parts[Window5.PartSelected]->ComboChange (control->GetText ());
+ Window5.parts[Window5.PartSelected]->ComboChange (control, control->GetText ());
 
  Window5.pmenu2_Properties_EvMenuActive (this);
 }
 
 void
+CPWindow5::PartButtonEvent(CControl * control, uint button, uint x, uint y, uint state)
+{
+ if (control->GetTag () < (unsigned int) Window5.partsc)
+  {
+   Window5.parts[control->GetTag ()]->ButtonEvent (control, button, x, y, state);
+  }
+}
+
+void
+CPWindow5::PartKeyEvent(CControl * control, uint keysym, uint ukeysym, uint state)
+{
+ if (control->GetTag () < (unsigned int) Window5.partsc)
+  {
+   Window5.parts[control->GetTag ()]->KeyEvent (control, keysym, ukeysym, state);
+  }
+}
+
+void
+CPWindow5::PartEvent(CControl * control)
+{
+ if (control->GetTag () < (unsigned int) Window5.partsc)
+  {
+   Window5.parts[control->GetTag ()]->Event (control);
+  }
+}
+
+void
 CPWindow5::timer1_EvOnTime(CControl * control)
 {
+
+ for (int i = 0; i < partsc; i++)
+  {
+   parts[i]->Draw ();
+  }
+
 
  draw1.Canvas.Init (1.0, 1.0);
 
@@ -210,9 +243,26 @@ CPWindow5::timer1_EvOnTime(CControl * control)
 
  for (int i = 0; i < partsc; i++)
   {
-   parts[i]->Draw ();
    draw1.Canvas.PutBitmap (parts[i]->GetBitmap (), parts[i]->GetX (), parts[i]->GetY ());
   }
+
+ draw1.Canvas.ChangeScale (1.0, 1.0);
+
+ if (useAlias)
+  {
+   draw1.Canvas.SetFgColor (180, 180, 00);
+   draw1.Canvas.Text ("Alias On", 10, 5);
+  }
+ else
+  {
+   draw1.Canvas.SetFgColor (180, 180, 180);
+   draw1.Canvas.Text ("Alias Off", 10, 5);
+  }
+
+ draw1.Canvas.SetFgColor (180, 180, 180);
+ lxString temp;
+ temp.Printf ("Scale %3.1f", scale);
+ draw1.Canvas.Text (temp, 10, 20);
 
  draw1.Canvas.End ();
  draw1.Update ();
@@ -256,6 +306,10 @@ CPWindow5::draw1_EvKeyboardPress(CControl * control, const uint key, const uint 
 {
  switch (key)
   {
+  case 'P':
+  case 'p':
+   useAlias = !useAlias;
+   break;
   case '='://+
    scale += 0.1;
    if (scale > 2)scale = 2;
@@ -293,12 +347,17 @@ CPWindow5::SaveConfig(lxString fname)
 
  prefs.Clear ();
 
- temp.Printf ("scale,0,0:%f", scale);
+ temp.Printf ("version,0,0,0:%s", _VERSION_);
  prefs.AddLine (temp);
+ temp.Printf ("scale,0,0,0:%f", scale);
+ prefs.AddLine (temp);
+ temp.Printf ("useAlias,0,0,0:%i", useAlias);
+ prefs.AddLine (temp);
+
 
  for (int i = 0; i < partsc; i++)
   {
-   temp.Printf ("%s,%i,%i:%s", parts[i]->GetName ().c_str (), parts[i]->GetX (), parts[i]->GetY (), parts[i]->WritePreferences ().c_str ());
+   temp.Printf ("%s,%i,%i,%i:%s", parts[i]->GetName ().c_str (), parts[i]->GetX (), parts[i]->GetY (), parts[i]->GetOrientation (), parts[i]->WritePreferences ().c_str ());
    prefs.AddLine (temp);
   }
 
@@ -311,10 +370,12 @@ CPWindow5::LoadConfig(lxString fname)
  char name[256];
  char temp[256];
  unsigned int x, y;
+ int orient;
  lxStringList prefs;
+ int newformat = 0;
+
 
  pboard = Window1.GetBoard ();
-
 
  for (int i = 0; i < 256; i++)
   {
@@ -328,7 +389,6 @@ CPWindow5::LoadConfig(lxString fname)
     }
   }
 
-
  PinsCount = pboard->MGetPinCount ();
  Pins = (picpin*) pboard->MGetPinsValues ();
 
@@ -337,6 +397,7 @@ CPWindow5::LoadConfig(lxString fname)
  if (GetWin () == NULL)
   {
    LoadConfigFile = fname;
+   menu1_Edit_Clearpinalias_EvMenuActive (this);
    return 0;
   }
  else
@@ -353,18 +414,43 @@ CPWindow5::LoadConfig(lxString fname)
 
    DeleteParts ();
    partsc_ = 0;
+
+
+   if (prefs.GetLine (0).Contains ("version"))
+    {
+     newformat = 1;
+    }
+
    for (unsigned int i = 0; i < prefs.GetLinesCount (); i++)
     {
-     sscanf (prefs.GetLine (i).c_str (), "%255[^,],%i,%i:%255[^\n]", name, &x, &y, temp);
-
-     if (strcmp (name, "scale") == 0)
+     if (newformat)
+      {
+       sscanf (prefs.GetLine (i).c_str (), "%255[^,],%i,%i,%i:%255[^\n]", name, &x, &y, &orient, temp);
+      }
+     else
+      {
+       sscanf (prefs.GetLine (i).c_str (), "%255[^,],%i,%i:%255[^\n]", name, &x, &y, temp);
+      }
+     if (!strcmp (name, "scale"))
       {
        sscanf (temp, "%f", &scale);
+      }
+     else if (!strcmp (name, "useAlias"))
+      {
+       sscanf (temp, "%hhu", &useAlias);
+      }
+     else if (!strcmp (name, "version"))
+      {
+       //use planed in future 
       }
      else if ((parts[partsc_] = create_part (name, x, y)))
       {
        parts[partsc_]->ReadPreferences (temp);
-       parts[partsc_]->id = partsc_;
+       parts[partsc_]->SetId (partsc_);
+       if (newformat)
+        {
+         parts[partsc_]->SetOrientation (orient);
+        }
        partsc_++;
       }
      else
@@ -378,13 +464,77 @@ CPWindow5::LoadConfig(lxString fname)
  return ret;
 }
 
+bool
+CPWindow5::SavePinAlias(lxString fname)
+{
+ lxString temp;
+ lxString pin;
+ lxString alias;
+ lxStringList lalias;
+ lalias.Clear ();
+ lalias.AddLine ("//N-PinName -ALias   --The pin name alias must start in column fourteen and have size less than seven chars ");
+ for (int i = 1; i < 256; i++)
+  {
+   pin = PinNames[i].substr (0, 7);
+   if (!pin.size ())pin = " ";
+   alias = PinAlias[i].substr (0, 7);
+   if (!alias.size ())alias = " ";
+   temp.Printf ("%03i-%-7s -%-7s", i, pin.c_str (), alias.c_str ());
+   lalias.AddLine (temp);
+  }
+ return lalias.SaveToFile (fname);
+}
+
+bool
+CPWindow5::LoadPinAlias(lxString fname, unsigned char show_error_msg)
+{
+
+ if (!show_error_msg)
+  {
+   if (!lxFileExists (fname))
+    {
+     return 0;
+    }
+  }
+ lxStringList alias;
+ lxString line;
+ alias.Clear ();
+ if (alias.LoadFromFile (fname))
+  {
+   alias_fname = fname;
+
+   for (int i = 0; i < 256; i++)
+    {
+     line = alias.GetLine (i);
+     if (line.size () > 13)
+      {
+       PinAlias[i] = line.substr (13, 7);
+      }
+     else
+      {
+       PinAlias[i] = "";
+      }
+    }
+   PinAlias[0] = "NC";
+   if (show_error_msg)
+    {
+     useAlias = 1;
+    }
+   return 1;
+  }
+ else
+  {
+   return 0;
+  }
+}
+
 void
 CPWindow5::DeleteParts(void)
 {
  int partsc_ = partsc;
  partsc = 0; //for disable process
  scale = 1.0;
-
+ useAlias = 0;
  //delete previous parts
 
  for (int i = 0; i < partsc_; i++)
@@ -419,6 +569,9 @@ CPWindow5::menu1_File_Saveconfiguration_EvMenuActive(CControl * control)
  filedialog1.SetFileName ("untitled.pcf");
  filedialog1_EvOnClose (1);
 #else 
+ fdtype = -1;
+ filedialog1.SetFileName (oldfname);
+ filedialog1.SetFilter (lxT ("PICSimLab Config. (*.pcf)|*.pcf"));
  filedialog1.Run ();
 #endif 
 }
@@ -427,12 +580,98 @@ void
 CPWindow5::menu1_File_Loadconfiguration_EvMenuActive(CControl * control)
 {
 #ifdef __EMSCRIPTEN__
-   EM_ASM_ ({toggle_load_panel();});
-#else	
+ EM_ASM_ ({toggle_load_panel ();});
+#else 
  filedialog1.SetType (lxFD_OPEN | lxFD_CHANGE_DIR);
  fdtype = -1;
+ filedialog1.SetFileName (oldfname);
+ filedialog1.SetFilter (lxT ("PICSimLab Config. (*.pcf)|*.pcf"));
  filedialog1.Run ();
 #endif 
+}
+
+void
+CPWindow5::menu1_File_Savepinalias_EvMenuActive(CControl * control)
+{
+ filedialog1.SetType (lxFD_SAVE | lxFD_CHANGE_DIR);
+ fdtype = -1;
+#ifdef __EMSCRIPTEN__
+ filedialog1.SetDir ("/tmp/");
+ filedialog1.SetFileName ("untitled.ppa");
+ filedialog1_EvOnClose (1);
+#else 
+ fdtype = -2;
+ filedialog1.SetFileName (oldfname);
+ filedialog1.SetFilter (lxT ("PICSimLab Pin Alias. (*.ppa)|*.ppa"));
+ filedialog1.Run ();
+#endif 
+}
+
+void
+CPWindow5::menu1_File_Loadpinalias_EvMenuActive(CControl * control)
+{
+#ifdef __EMSCRIPTEN__
+ EM_ASM_ ({toggle_load_panel ();});
+#else 
+ filedialog1.SetType (lxFD_OPEN | lxFD_CHANGE_DIR);
+ fdtype = -2;
+ filedialog1.SetFileName (oldfname);
+ filedialog1.SetFilter (lxT ("PICSimLab Pin Alias. (*.ppa)|*.ppa"));
+ filedialog1.Run ();
+#endif 
+}
+
+void
+CPWindow5::menu1_Edit_Clearpinalias_EvMenuActive(CControl * control)
+{
+ for (int i = 0; i < 256; i++)
+  {
+   PinAlias[i] = PinNames[i];
+  }
+}
+
+void
+CPWindow5::menu1_Edit_Togglepinalias_EvMenuActive(CControl * control)
+{
+ useAlias = !useAlias;
+}
+
+void
+CPWindow5::menu1_Edit_Editpinalias_EvMenuActive(CControl * control)
+{
+ if (lxFileExists (alias_fname))
+  {
+   SavePinAlias (alias_fname);
+#ifdef _WIN_  
+   lxExecute (lxT ("notepad.exe ") + alias_fname);
+#else
+   lxExecute ("gedit " + alias_fname, lxEXEC_MAKE_GROUP_LEADER);
+#endif
+  }
+ else
+  {
+   Message ("Pin alias file don't exist!");
+  }
+}
+
+void
+CPWindow5::menu1_Edit_Reloadpinalias_EvMenuActive(CControl * control)
+{
+ LoadPinAlias (alias_fname);
+}
+
+void
+CPWindow5::menu1_Edit_Zoomin_EvMenuActive(CControl * control)
+{
+ scale += 0.1;
+ if (scale > 2)scale = 2;
+}
+
+void
+CPWindow5::menu1_Edit_Zoomout_EvMenuActive(CControl * control)
+{
+ scale -= 0.1;
+ if (scale < 0.1)scale = 0.1;
 }
 
 void
@@ -476,7 +715,7 @@ void
 CPWindow5::_EvOnHide(CControl * control)
 {
  timer1.SetRunState (0);
- //board * pboard = Window1.GetBoard ();
+ pboard = Window1.GetBoard ();
  if (pboard)
   {
    pboard->SetUseSpareParts (0);
@@ -488,6 +727,19 @@ CPWindow5::pmenu2_Move_EvMenuActive(CControl * control)
 {
  PartToMove = PartSelected;
  lxSetCursor (lxCursor (lxCURSOR_SIZENWSE));
+}
+
+void
+CPWindow5::pmenu2_Rotate_EvMenuActive(CControl * control)
+{
+
+ int orientation = parts[PartSelected]->GetOrientation ();
+
+ orientation++;
+ if (orientation > 3)orientation = 0;
+
+ parts[PartSelected]->SetOrientation (orientation);
+
 }
 
 void
@@ -535,7 +787,9 @@ CPWindow5::menu1_Help_Contents_EvMenuActive(CControl * control)
 void
 CPWindow5::menu1_Help_About_EvMenuActive(CControl * control)
 {
- Message_sz (lxT ("Developed by L.C. Gamboa\n <lcgamboa@yahoo.com>\n Version: ") + lxString (lxT (_VERSION_)), 400, 200);
+ lxString stemp;
+ stemp.Printf (lxT ("Developed by L.C. Gamboa\n <lcgamboa@yahoo.com>\n Version: %s %s %s"), lxT (_VERSION_), lxT (_DATE_), lxT (_ARCH_));
+ Message_sz (stemp, 400, 200);
 }
 
 void
@@ -608,13 +862,51 @@ CPWindow5::filedialog1_EvOnClose(int retId)
      LoadConfig (filedialog1.GetFileName ());
     }
   }
+ else if (retId && (fdtype == -2))
+  {
 
- if (fdtype != -1)
+   if ((filedialog1.GetType () == (lxFD_SAVE | lxFD_CHANGE_DIR)))
+    {
+     if (lxFileExists (filedialog1.GetFileName ()))
+      {
+
+       if (!Dialog (lxString ("Overwriting file: ") + basename (filedialog1.GetFileName ()) + "?"))
+        return;
+      }
+     SavePinAlias (filedialog1.GetFileName ());
+#ifdef __EMSCRIPTEN__
+     EM_ASM_ ({
+              var filename = UTF8ToString ($0);
+              var buf = FS.readFile (filename);
+              var blob = new Blob ([buf],
+               {
+                "type" : "application/octet-stream" });
+              var text = URL.createObjectURL (blob);
+
+              var element = document.createElement ('a');
+              element.setAttribute ('href', text);
+              element.setAttribute ('download', filename);
+
+              element.style.display = 'none';
+              document.body.appendChild (element);
+
+              element.click ();
+
+              document.body.removeChild (element);
+              URL.revokeObjectURL (text);
+     }, filedialog1.GetFileName ().c_str ());
+#endif      
+    }
+
+   if ((filedialog1.GetType () == (lxFD_OPEN | lxFD_CHANGE_DIR)))
+    {
+     LoadPinAlias (filedialog1.GetFileName (), 1);
+    }
+  }
+ else if (fdtype >= 0)
   {
    parts[fdtype]->filedialog_EvOnClose (retId);
    fdtype = -1;
-   filedialog1.SetFileName (oldfname);
-   filedialog1.SetFilter (lxT ("PICSimLab Config. (*.pcf)|*.pcf"));
   }
 }
 
@@ -645,17 +937,30 @@ CPWindow5::GetPinsNames(void)
 
  for (int i = 1; i <= pboard->MGetPinCount (); i++)
   {
-   spin = PinNames[i];
-
-   if (spin.Cmp (lxT ("error")))
+   if (useAlias)
+    {
+     spin = PinAlias[i];
+    }
+   else
+    {
+     spin = PinNames[i];
+    }
+   if (PinNames[i].Cmp (lxT ("error")))
     {
      Items = Items + itoa (i) + "  " + spin + ",";
     }
   }
  for (int i = IOINIT; i < 256; i++)
   {
-   spin = PinNames[i];
-   if (spin.length () > 0)
+   if (useAlias)
+    {
+     spin = PinAlias[i];
+    }
+   else
+    {
+     spin = PinNames[i];
+    }
+   if (PinNames[i].length () > 0)
     {
      Items = Items + itoa (i) + "  " + spin + ",";
     }
@@ -666,13 +971,30 @@ CPWindow5::GetPinsNames(void)
 lxString
 CPWindow5::GetPinName(unsigned char pin)
 {
+
+ if (!pin) return "NC";
+
  if (pin <= pboard->MGetPinCount ())
   {
-   return PinNames[pin];
+   if (useAlias)
+    {
+     return PinAlias[pin];
+    }
+   else
+    {
+     return PinNames[pin];
+    }
   }
  else
   {
-   return PinNames[pin] + "-" + itoa (pin);
+   if (useAlias)
+    {
+     return PinAlias[pin];
+    }
+   else
+    {
+     return PinNames[pin] + "-" + itoa (pin);
+    }
   }
 }
 
@@ -721,6 +1043,21 @@ CPWindow5::SetPinDOV(unsigned char pin, unsigned char ovalue)
 }
 
 void
+CPWindow5::SetPinDir(unsigned char pin, unsigned char dir)
+{
+ if (pin)
+  {
+   if (Pins[pin - 1].dir != dir)
+    {
+     if ((pin > PinsCount))
+      {
+       Pins[pin - 1].dir = dir;
+      }
+    }
+  }
+}
+
+void
 CPWindow5::WritePin(unsigned char pin, unsigned char value)
 {
  if (pin > PinsCount)
@@ -759,7 +1096,7 @@ CPWindow5::SetAPin(unsigned char pin, float value)
 }
 
 unsigned char
-CPWindow5::RegisterIOpin(lxString pname, unsigned char pin)
+CPWindow5::RegisterIOpin(lxString pname, unsigned char pin, unsigned char dir)
 {
  unsigned char ppin = IOINIT;
 
@@ -782,6 +1119,11 @@ CPWindow5::RegisterIOpin(lxString pname, unsigned char pin)
  if (ppin)
   {
    PinNames[ppin] = pname;
+   if (PinAlias[ppin][0] == ' ')
+    {
+     PinAlias[ppin] = pname;
+    }
+   SetPinDir (ppin, dir);
   }
 
  return ppin;
@@ -792,6 +1134,10 @@ CPWindow5::UnregisterIOpin(unsigned char pin)
 {
  if (PinNames[pin].length () > 0)
   {
+   if (!strncmp (PinNames[pin], PinAlias[pin], strlen (PinNames[pin])))
+    {
+     PinAlias[pin] = " ";
+    }
    PinNames[pin] = "";
    return 1;
   }

@@ -278,6 +278,7 @@ public:
     void menu1_EvBoard(CControl * control);
     void menu1_EvMicrocontroller(CControl * control);
     void LoadWorkspace(lxString fnpzw);
+    void SaveWorkspace(lxString fnpzw);
     void LoadHexFile(lxString fname);
     void SetClock(float clk);
     float GetClock(void);
@@ -323,6 +324,8 @@ private:
     int create;
 
     int ondraw;
+    
+    unsigned int error;
 
     CItemMenu MBoard[BOARDS_MAX];
     CItemMenu MMicro[MAX_MIC];
@@ -338,6 +341,8 @@ enum {
 #define ST_T1 0x01
 #define ST_T2 0x02
 #define ST_TH 0x04
+
+#define ERR_VERSION 0x1
 
 #endif /*#CPWINDOW1*/
 

@@ -28,7 +28,6 @@
 
 #include<lxrad.h>
 #include"part.h"
-#include"../devices/lcd_pcd8544.h"
 
 class cpart_MI2C_24CXXX : public part {
 public:

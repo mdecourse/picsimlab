@@ -103,19 +103,7 @@ cboard_uCboard::Reset(void)
 {
  MReset (1);
 
- //verify serial port state and refresh status bar  
-#ifndef _WIN_
- if (serialfd > 0)
-#else
- if (serialfd != INVALID_HANDLE_VALUE)
-#endif
-  Window1.statusbar1.SetField (2, lxT ("Serial: ") +
-                               lxString::FromAscii (SERIALDEVICE) + lxT (":") + itoa (serialbaud) + lxT ("(") +
-                               lxString ().Format ("%4.1f", fabs ((100.0 * serialexbaud - 100.0 *
-                                                                 serialbaud) / serialexbaud)) + lxT ("%)"));
- else
-  Window1.statusbar1.SetField (2, lxT ("Serial: ") +
-                               lxString::FromAscii (SERIALDEVICE) + lxT (" (ERROR)"));
+ Window1.statusbar1.SetField (2, lxT ("Serial: ") + lxString::FromAscii (SERIALDEVICE));
 
  if (use_spare)Window5.Reset ();
 }
@@ -125,19 +113,8 @@ cboard_uCboard::Reset(void)
 void
 cboard_uCboard::RefreshStatus(void)
 {
- //verify serial port state and refresh status bar   
-#ifndef _WIN_
- if (serialfd > 0)
-#else
- if (serialfd != INVALID_HANDLE_VALUE)
-#endif
-  Window1.statusbar1.SetField (2, lxT ("Serial: ") +
-                               lxString::FromAscii (SERIALDEVICE) + lxT (":") + itoa (serialbaud) + lxT ("(") +
-                               lxString ().Format ("%4.1f", fabs ((100.0 * serialexbaud - 100.0 *
-                                                                 serialbaud) / serialexbaud)) + lxT ("%)"));
- else
-  Window1.statusbar1.SetField (2, lxT ("Serial: ") +
-                               lxString::FromAscii (SERIALDEVICE) + lxT (" (ERROR)"));
+
+ Window1.statusbar1.SetField (2, lxT ("Serial: ") + lxString::FromAscii (SERIALDEVICE));
 
 }
 
@@ -395,40 +372,18 @@ cboard_uCboard::MInit(const char * processor, const char * fname, float freq)
 
  if (ret == -1)
   {
-   printf("PICSimLab: Unknown processor %s, loading default !\n",processor);
+   printf ("PICSimLab: Unknown processor %s, loading default !\n", processor);
    board_ucsim::MInit ("C51", fname, freq);
    Proc = "C51";
   }
 
  lxImage image;
 
- switch (MGetPinCount ())
+ if (!image.LoadFile (Window1.GetSharePath () + lxT ("boards/Common/ic") + itoa (MGetPinCount ()) + lxT (".png")))
   {
-  case 8:
-   image.LoadFile (Window1.GetSharePath () + lxT ("boards/Common/ic8.png"));
-   break;
-  case 14:
-   image.LoadFile (Window1.GetSharePath () + lxT ("boards/Common/ic14.png"));
-   break;
-  case 18:
-   image.LoadFile (Window1.GetSharePath () + lxT ("boards/Common/ic18.png"));
-   break;
-  case 20:
-   image.LoadFile (Window1.GetSharePath () + lxT ("boards/Common/ic20.png"));
-   break;
-  case 28:
-   image.LoadFile (Window1.GetSharePath () + lxT ("boards/Common/ic28.png"));
-   break;
-  case 40:
-   image.LoadFile (Window1.GetSharePath () + lxT ("boards/Common/ic40.png"));
-   break;
-  case 100:
-   image.LoadFile (Window1.GetSharePath () + lxT ("boards/Common/ic100.png"));
-   break;
-  default:
-   image.LoadFile (Window1.GetSharePath () + lxT ("boards/Common/ic40.png"));
-   printf ("IC package with %i pins not found!\n", MGetPinCount ());
-   break;
+   image.LoadFile (Window1.GetSharePath () + lxT ("boards/Common/ic6.png"));
+   printf ("picsimlab: IC package with %i pins not found!\n", MGetPinCount ());
+   printf ("picsimlab: %s not found!\n", (const char *) (Window1.GetSharePath () + lxT ("boards/Common/ic") + itoa (MGetPinCount ()) + lxT (".png")).c_str ());
   }
 
  if (micbmp) delete micbmp;

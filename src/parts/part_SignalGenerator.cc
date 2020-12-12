@@ -49,7 +49,7 @@ cpart_SignalGenerator::cpart_SignalGenerator(unsigned x, unsigned y)
  lxImage image;
  image.LoadFile (Window1.GetSharePath () + lxT ("parts/") + GetPictureFileName ());
 
- Bitmap = new lxBitmap (image, &Window5);
+ Bitmap = lxGetBitmapRotated (&image, &Window5, orientation);
  image.Destroy ();
 
  canvas.Create (Window5.GetWWidget (), Bitmap);
@@ -65,7 +65,8 @@ cpart_SignalGenerator::cpart_SignalGenerator(unsigned x, unsigned y)
 
  type = 0;
  ts = 0;
- maxfreq=1;
+ maxfreq = 1;
+ lastd = 2;
 }
 
 cpart_SignalGenerator::~cpart_SignalGenerator(void)
@@ -78,13 +79,13 @@ void
 cpart_SignalGenerator::Draw(void)
 {
 
- int i,j;
+ int i, j;
  lxString temp;
  float v[2];
  float tsi;
  int sizex;
  int sizey;
- canvas.Init ();
+ canvas.Init (1.0, 1.0, orientation);
 
  lxFont font (9, lxFONTFAMILY_TELETYPE, lxFONTSTYLE_NORMAL, lxFONTWEIGHT_BOLD);
  canvas.SetFont (font);
@@ -99,15 +100,15 @@ cpart_SignalGenerator::Draw(void)
      canvas.Rectangle (1, output[i].x1, output[i].y1, output[i].x2 - output[i].x1, output[i].y2 - output[i].y1);
      canvas.SetFgColor (255, 255, 255);
      if (input_pins[output[i].id - O_P1] == 0)
-      canvas.Text ("NC", output[i].x1, output[i].y1);
+      canvas.RotatedText ("NC", output[i].x1, output[i].y1, 0);
      else
-      canvas.Text (Window5.GetPinName (input_pins[output[i].id - O_P1]), output[i].x1, output[i].y1);
+      canvas.RotatedText (Window5.GetPinName (input_pins[output[i].id - O_P1]), output[i].x1, output[i].y1, 0);
      break;
     case O_P2:
      canvas.SetColor (49, 61, 99);
      canvas.Rectangle (1, output[i].x1, output[i].y1, output[i].x2 - output[i].x1, output[i].y2 - output[i].y1);
      canvas.SetFgColor (255, 255, 255);
-     canvas.Text ("GND", output[i].x1, output[i].y1);
+     canvas.RotatedText ("GND", output[i].x1, output[i].y1, 0);
      break;
     case O_PO1:
     case O_PO2:
@@ -120,32 +121,32 @@ cpart_SignalGenerator::Draw(void)
      canvas.SetColor (255, 255, 255);
      canvas.Rectangle (1, output[i].x1, output[i].y1, output[i].x2 - output[i].x1, output[i].y2 - output[i].y1);
      canvas.SetFgColor (0, 0, 0);
-    
-     v[0]= 0;
+
+     v[0] = 0;
      tsi = 0;
      sizex = output[i].x2 - output[i].x1;
      sizey = output[i].y2 - output[i].y1;
-     
+
      for (j = 1; j < sizex; j++)
       {
-       v[1]=v[0];
+       v[1] = v[0];
        switch (type)
-        {
-        case 0:
-         v[0] = (sin (tsi)) ;
-         break;
-        case 1:
-         v[0] = ((sin (tsi) > 0) - 0.5)*2 ;
-         break;
-        case 2:
-         v[0] = ((acos (sin (tsi)) / 1.5708) - 1) ;
-         break;
-        }
-       tsi += 3*6.28/sizex;
-       if(j > 0)
-        {       
-          canvas.Line (output[i].x1+j-1,output[i].y1+((v[1]+2.0)*sizey/4.0),output[i].x1+j,output[i].y1+((v[0]+2.0)*sizey/4.0));
-        }
+	{
+	case 0:
+	 v[0] = (sin (tsi));
+	 break;
+	case 1:
+	 v[0] = ((sin (tsi) > 0) - 0.5)*2;
+	 break;
+	case 2:
+	 v[0] = ((acos (sin (tsi)) / 1.5708) - 1);
+	 break;
+	}
+       tsi += 3 * 6.28 / sizex;
+       if (j > 0)
+	{
+	 canvas.Line (output[i].x1 + j - 1, output[i].y1 + ((v[1] + 2.0) * sizey / 4.0), output[i].x1 + j, output[i].y1 + ((v[0] + 2.0) * sizey / 4.0));
+	}
       }
 
      break;
@@ -154,22 +155,22 @@ cpart_SignalGenerator::Draw(void)
      canvas.SetColor (49, 61, 99);
      canvas.Rectangle (1, output[i].x1, output[i].y1, output[i].x2 - output[i].x1, output[i].y2 - output[i].y1);
      canvas.SetFgColor (255, 255, 255);
-     canvas.Text (temp, output[i].x1, output[i].y1);
+     canvas.RotatedText (temp, output[i].x1, output[i].y1, 0);
      break;
     case O_FREQ:
      temp.Printf ("F=%5.2f", freq);
      canvas.SetColor (49, 61, 99);
      canvas.Rectangle (1, output[i].x1, output[i].y1, output[i].x2 - output[i].x1, output[i].y2 - output[i].y1);
      canvas.SetFgColor (255, 255, 255);
-     canvas.Text (temp, output[i].x1, output[i].y1);
+     canvas.RotatedText (temp, output[i].x1, output[i].y1, 0);
      break;
     case O_MF:
      canvas.SetColor (255, 255, 255);
      canvas.Rectangle (1, output[i].x1, output[i].y1, output[i].x2 - output[i].x1, output[i].y2 - output[i].y1);
      canvas.SetColor (0, 0, 0);
      temp.Printf ("F x %i", maxfreq);
-     canvas.Text (temp, output[i].x1, output[i].y1);
-     break;  
+     canvas.RotatedText (temp, output[i].x1, output[i].y1, 0);
+     break;
     }
   }
 
@@ -218,6 +219,12 @@ cpart_SignalGenerator::Process(void)
 
    Window5.SetAPin (input_pins[0], v);
 
+   unsigned char vald = v > 2.5;
+   if (vald != lastd)
+    {
+     lastd = vald;
+     Window5.SetPin (input_pins[0], vald);
+    }
    mcount = -1;
   }
 
@@ -232,9 +239,21 @@ cpart_SignalGenerator::EvMouseButtonPress(uint button, uint x, uint y, uint stat
 
  for (i = 0; i < inputc; i++)
   {
-   if (((input[i].x1 <= x)&&(input[i].x2 >= x))&&((input[i].y1 <= y)&&(input[i].y2 >= y)))
+   if (PointInside (x, y, input[i]))
     {
      l = (input[i].y2 - input[i].y1 - 10);
+     switch (orientation)
+      {
+      case 1:
+       y = Height - x;
+       break;
+      case 2:
+       y = Height - y;
+       break;
+      case 3:
+       y = x;
+       break;
+      }
      switch (input[i].id)
       {
       case I_PO1:
@@ -252,9 +271,9 @@ cpart_SignalGenerator::EvMouseButtonPress(uint button, uint x, uint y, uint stat
        if (type > 2)type = 0;
        break;
       case I_MF:
-       maxfreq*=10;
+       maxfreq *= 10;
        if (maxfreq > 10000)maxfreq = 1;
-       break;  
+       break;
       }
     }
   }
@@ -268,7 +287,7 @@ cpart_SignalGenerator::EvMouseButtonRelease(uint button, uint x, uint y, uint st
 
  for (i = 0; i < inputc; i++)
   {
-   if (((input[i].x1 <= x)&&(input[i].x2 >= x))&&((input[i].y1 <= y)&&(input[i].y2 >= y)))
+   if (PointInside (x, y, input[i]))
     {
      switch (input[i].id)
       {
@@ -292,24 +311,36 @@ cpart_SignalGenerator::EvMouseMove(uint button, uint x, uint y, uint state)
 
  for (i = 0; i < inputc; i++)
   {
-   if (((input[i].x1 <= x)&&(input[i].x2 >= x))&&((input[i].y1 <= y)&&(input[i].y2 >= y)))
+   if (PointInside (x, y, input[i]))
     {
      l = (input[i].y2 - input[i].y1 - 10);
+     switch (orientation)
+      {
+      case 1:
+       y = Height - x;
+       break;
+      case 2:
+       y = Height - y;
+       break;
+      case 3:
+       y = x;
+       break;
+      }
      switch (input[i].id)
       {
       case I_PO1:
        if (active[0])
-        {
-         values[0] = y - input[i].y1;
-         if (values[0] >= l)values[0] = l;
-        }
+	{
+	 values[0] = y - input[i].y1;
+	 if (values[0] >= l)values[0] = l;
+	}
        break;
       case I_PO2:
        if (active[1])
-        {
-         values[1] = y - input[i].y1;
-         if (values[1] >= l)values[1] = l;
-        }
+	{
+	 values[1] = y - input[i].y1;
+	 if (values[1] >= l)values[1] = l;
+	}
        break;
       }
     }
@@ -324,7 +355,7 @@ cpart_SignalGenerator::get_in_id(char * name)
  if (strcmp (name, "PO2") == 0)return I_PO2;
  if (strcmp (name, "TP") == 0)return I_TP;
  if (strcmp (name, "MF") == 0)return I_MF;
- 
+
  printf ("Erro input '%s' don't have a valid id! \n", name);
  return -1;
 }
@@ -352,7 +383,7 @@ cpart_SignalGenerator::WritePreferences(void)
 {
  char prefs[256];
 
- sprintf (prefs, "%hhu,%hhu,%hhu,%hhu,%u", input_pins[0], values[0], values[1], type,maxfreq);
+ sprintf (prefs, "%hhu,%hhu,%hhu,%hhu,%u", input_pins[0], values[0], values[1], type, maxfreq);
 
  return prefs;
 }

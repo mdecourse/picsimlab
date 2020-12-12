@@ -25,6 +25,7 @@
 
 //main window
 
+//#define CONVERTER_MODE
 
 #include"picsimlab1.h"
 #include"picsimlab1_d.cc"
@@ -74,9 +75,13 @@ usleep(unsigned int usec)
 #define msleep(x) usleep(x*1000)
 #endif        
 
+#ifdef CONVERTER_MODE
+static lxString cvt_fname;
+#endif
 
-
-int crt;
+#ifndef _NOTHREAD
+static int crt;
+#endif
 
 void
 CPWindow1::timer1_EvOnTime(CControl * control)
@@ -167,6 +172,20 @@ CPWindow1::timer2_EvOnTime(CControl * control)
     }
   }
  status.st[0] &= ~ST_T2;
+
+ if (error & ERR_VERSION)
+  {
+   error &= ~ERR_VERSION;
+   Message_sz ("The loaded workspace was made with a newer version.\n Please update your PICSimLab.", 400, 200);
+  }
+
+#ifdef CONVERTER_MODE
+ if (cvt_fname.Length () > 3)
+  {
+   SaveWorkspace (cvt_fname);
+  }
+#endif 
+
 }
 
 void
@@ -484,7 +503,7 @@ CPWindow1::Configure(CControl * control, const char * home)
 
    if (dc >= MAX_MIC)
     {
-     printf ("PICSimLab: microcontroller menu only support %i entries!\n",MAX_MIC);
+     printf ("PICSimLab: microcontroller menu only support %i entries!\n", MAX_MIC);
      exit (-1);
     }
   }
@@ -562,6 +581,8 @@ CPWindow1::Configure(CControl * control, const char * home)
 
  sprintf (fname, "%s/parts_%s.pcf", home, boards_list[lab].name_);
  Window5.LoadConfig (fname);
+ sprintf (fname, "%s/palias_%s.ppa", home, boards_list[lab_].name_);
+ Window5.LoadPinAlias (fname);
 
 
  if ((!pboard->GetProcessorName ().Cmp ("atmega328p")) || (!pboard->GetProcessorName ().Cmp ("atmega2560")))
@@ -649,7 +670,7 @@ CPWindow1::_EvOnDestroy(CControl * control)
  sprintf (fname, "%s/picsimlab.ini", home);
 
 
-
+ saveprefs (lxT ("picsimlab_version"), _VERSION_);
  saveprefs (lxT ("picsimlab_lab"), boards_list[lab].name_);
  saveprefs (lxT ("picsimlab_debug"), itoa (debug));
  saveprefs (lxT ("picsimlab_debugt"), itoa (debug_type));
@@ -668,7 +689,15 @@ CPWindow1::_EvOnDestroy(CControl * control)
  saveprefs ("picsimlab_wprog", PROGDEVICE);
 #endif
 #endif
- saveprefs (lxT ("picsimlab_lpath"), PATH);
+
+ if (PATH.size () > 0)
+  {
+   saveprefs (lxT ("picsimlab_lpath"), PATH);
+  }
+ else
+  {
+   saveprefs (lxT ("picsimlab_lpath"), " ");
+  }
  saveprefs (lxT ("picsimlab_lfile"), FNAME);
 
  pboard->WritePreferences ();
@@ -689,9 +718,11 @@ CPWindow1::_EvOnDestroy(CControl * control)
 
 
  sprintf (fname, "%s/parts_%s.pcf", home, boards_list[lab_].name_);
-
  Window5.SaveConfig (fname);
  Window5.DeleteParts ();
+ sprintf (fname, "%s/palias_%s.ppa", home, boards_list[lab_].name_);
+ Window5.SavePinAlias (fname);
+
 
  delete pboard;
  pboard = NULL;
@@ -706,8 +737,8 @@ void
 CPWindow1::menu1_File_LoadHex_EvMenuActive(CControl * control)
 {
 #ifdef __EMSCRIPTEN__
-   EM_ASM_ ({toggle_load_panel();});
-#else		   
+ EM_ASM_ ({toggle_load_panel ();});
+#else     
  filedialog1.SetType (lxFD_OPEN | lxFD_CHANGE_DIR);
  filedialog1.Run ();
 #endif 
@@ -719,9 +750,9 @@ CPWindow1::menu1_File_SaveHex_EvMenuActive(CControl * control)
  pa = mcupwr;
  filedialog1.SetType (lxFD_SAVE | lxFD_CHANGE_DIR);
 #ifdef __EMSCRIPTEN__
- filedialog1.SetDir("/tmp/");
- filedialog1.SetFileName("untitled.hex");
- filedialog1_EvOnClose(1);
+ filedialog1.SetDir ("/tmp/");
+ filedialog1.SetFileName ("untitled.hex");
+ filedialog1_EvOnClose (1);
 #else 
  filedialog1.Run ();
 #endif 
@@ -810,7 +841,9 @@ CPWindow1::menu1_Help_About_Board_EvMenuActive(CControl * control)
 void
 CPWindow1::menu1_Help_About_PICSimLab_EvMenuActive(CControl * control)
 {
- Message_sz (lxT ("Developed by L.C. Gamboa\n <lcgamboa@yahoo.com>\n Version: ") + lxString (lxT (_VERSION_)), 400, 200);
+ lxString stemp;
+ stemp.Printf (lxT ("Developed by L.C. Gamboa\n <lcgamboa@yahoo.com>\n Version: %s %s %s"), lxT (_VERSION_), lxT (_DATE_), lxT (_ARCH_));
+ Message_sz (stemp, 400, 200);
 }
 
 void
@@ -880,7 +913,6 @@ CPWindow1::_EvOnShow(CControl * control)
      spare_on = 0;
     }
   }
-
 }
 
 void
@@ -935,6 +967,27 @@ CPWindow1::LoadHexFile(lxString fname)
 
  mcupwr = pa;
  timer1.SetRunState (1);
+
+#ifdef NO_DEBUG
+ statusbar1.SetField (1, lxT (" "));
+#else 
+ if (debug)
+  {
+   int ret = pboard->DebugInit (debug_type);
+   if (ret < 0)
+    {
+     statusbar1.SetField (1, lxT ("Debug: Error"));
+    }
+   else
+    {
+     statusbar1.SetField (1, lxT ("Debug: ") + pboard->GetDebugName () + ":" + itoa (debug_port));
+    }
+  }
+ else
+  {
+   statusbar1.SetField (1, lxT ("Debug: Off"));
+  }
+#endif
 }
 
 void
@@ -1035,9 +1088,9 @@ CPWindow1::menu1_File_SaveWorkspace_EvMenuActive(CControl * control)
 {
  filedialog2.SetType (lxFD_SAVE | lxFD_CHANGE_DIR);
 #ifdef __EMSCRIPTEN__
- filedialog2.SetDir("/tmp/");
- filedialog2.SetFileName("untitled.pzw");
- filedialog2_EvOnClose(1);
+ filedialog2.SetDir ("/tmp/");
+ filedialog2.SetFileName ("untitled.pzw");
+ filedialog2_EvOnClose (1);
 #else 
  filedialog2.Run ();
 #endif 
@@ -1097,6 +1150,25 @@ CPWindow1::LoadWorkspace(lxString fnpzw)
      strtok (NULL, " ");
      value = strtok (NULL, "\"");
      if ((name == NULL) || (value == NULL))continue;
+
+     if (!strcmp (name, "picsimlab_version"))
+      {
+       int maj, min, rev, ser;
+       int maj_, min_, rev_, ser_;
+       sscanf (_VERSION_, "%i.%i.%i", &maj, &min, &rev);
+       ser = maj * 10000 + min * 100 + rev;
+
+       sscanf (value, "%i.%i.%i", &maj_, &min_, &rev_);
+       ser_ = maj_ * 10000 + min_ * 100 + rev_;
+
+       if (ser_ > ser)
+        {
+         printf ("PICSimLab: .pzw file version error!\n");
+         error |= ERR_VERSION;
+        }
+
+       continue;
+      }
 #ifndef LEGACY081
      saveprefs (name, value);
 #else     
@@ -1235,6 +1307,10 @@ CPWindow1::LoadWorkspace(lxString fnpzw)
 
  _EvOnShow (this);
 
+#ifdef CONVERTER_MODE
+ fnpzw.replace (fnpzw.Length () - 4, 5, "_.pzw");
+ cvt_fname = fnpzw;
+#else
  snprintf (fzip, 1279, "%s/Readme.html", home);
  if (lxFileExists (fzip))
   {
@@ -1260,14 +1336,127 @@ CPWindow1::LoadWorkspace(lxString fnpzw)
 #endif     
     }
   }
+#endif 
+
+}
+
+void
+CPWindow1::SaveWorkspace(lxString fnpzw)
+{
+ char home[1024];
+ char fname[1280];
+
+#if  !defined(__EMSCRIPTEN__) &&  !defined(CONVERTER_MODE)
+ if (lxFileExists (fnpzw))
+  {
+
+   if (!Dialog (lxString ("Overwriting file: ") + basename (fnpzw) + "?"))
+    return;
+  }
+#endif
+
+ //write options
+
+ strncpy (home, (char*) lxGetUserDataDir (_T ("picsimlab")).char_str (), 1023);
+ snprintf (fname, 1279, "%s/picsimlab.ini", home);
+ prefs.SaveToFile (fname);
+
+ strncpy (home, (char*) lxGetTempDir (_T ("picsimlab")).char_str (), 1023);
+ strncat (home, "/picsimlab_workspace/", 1023);
+
+#ifdef CONVERTER_MODE
+ snprintf (fname, 1279, "rm -rf %s/*.ini", home);
+ system (fname);
+ snprintf (fname, 1279, "rm -rf %s/*.pcf", home);
+ system (fname);
+ snprintf (fname, 1279, "rm -rf %s/*.hex", home);
+ system (fname);
+#else 
+ lxRemoveDir (home);
+ lxCreateDir (home);
+#endif
+
+ snprintf (fname, 1279, "%s/picsimlab.ini", home);
+ prefs.Clear ();
+ saveprefs (lxT ("picsimlab_version"), _VERSION_);
+ saveprefs (lxT ("picsimlab_lab"), boards_list[lab].name_);
+ saveprefs (lxT ("picsimlab_debug"), itoa (debug));
+ saveprefs (lxT ("picsimlab_debugt"), itoa (debug_type));
+ saveprefs (lxT ("picsimlab_debugp"), itoa (debug_port));
+ saveprefs (lxT ("picsimlab_position"), itoa (GetX ()) + lxT (",") + itoa (GetY ()));
+ saveprefs (lxT ("osc_on"), itoa (pboard->GetUseOscilloscope ()));
+ saveprefs (lxT ("spare_on"), itoa (pboard->GetUseSpareParts ()));
+ saveprefs (lxT ("picsimlab_lfile"), lxT (" "));
+
+ pboard->WritePreferences ();
+
+ if (pboard->GetUseOscilloscope ())
+  Window4.WritePreferences ();
+
+ if (pboard->GetUseSpareParts ())
+  {
+   Window5.WritePreferences ();
+  }
+
+ prefs.SaveToFile (fname);
+
+ //write memory
+ snprintf (fname, 1279, "%s/mdump_%s_%s.hex", home, boards_list[lab_].name_, (const char*) proc_.c_str ());
+
+ pboard->MDumpMemory (fname);
+
+ if (pboard->GetUseSpareParts ())
+  {
+   snprintf (fname, 1279, "%s/parts_%s.pcf", home, boards_list[lab_].name_);
+   Window5.SaveConfig (fname);
+   sprintf (fname, "%s/palias_%s.ppa", home, boards_list[lab_].name_);
+   Window5.SavePinAlias (fname);
+  }
+
+ lxZipDir (home, fnpzw);
+
+ lxRemoveDir (home);
+
+
+ strncpy (home, (char*) lxGetUserDataDir (_T ("picsimlab")).char_str (), 1023);
+ snprintf (fname, 1279, "%s/picsimlab.ini", home);
+ prefs.Clear ();
+ prefs.LoadFromFile (fname);
+
+#ifdef __EMSCRIPTEN__
+ EM_ASM_ ({
+          var filename = UTF8ToString ($0);
+          var buf = FS.readFile (filename);
+          var blob = new Blob ([buf],
+           {
+            "type" : "application/octet-stream" });
+          var text = URL.createObjectURL (blob);
+
+          var element = document.createElement ('a');
+          element.setAttribute ('href', text);
+          element.setAttribute ('download', filename);
+
+          element.style.display = 'none';
+          document.body.appendChild (element);
+
+          element.click ();
+
+          document.body.removeChild (element);
+          URL.revokeObjectURL (text);
+ }, fnpzw.c_str ());
+#endif 
+
+#ifdef CONVERTER_MODE
+ WDestroy ();
+#endif
 }
 
 void
 CPWindow1::menu1_File_LoadWorkspace_EvMenuActive(CControl * control)
 {
 #ifdef __EMSCRIPTEN__
-   EM_ASM_ ({toggle_load_panel();});
-#else		   
+ EM_ASM_ ({toggle_load_panel ();});
+#else     
  filedialog2.SetType (lxFD_OPEN | lxFD_CHANGE_DIR);
  filedialog2.Run ();
 #endif
@@ -1288,98 +1477,7 @@ CPWindow1::filedialog2_EvOnClose(int retId)
 
  if (retId && (filedialog2.GetType () == (lxFD_SAVE | lxFD_CHANGE_DIR)))
   {
-   char home[1024];
-   char fname[1280];
-
-#ifndef __EMSCRIPTEN__
-   if (lxFileExists (filedialog2.GetFileName ()))
-    {
-
-     if (!Dialog (lxString ("Overwriting file: ") + basename (filedialog2.GetFileName ()) + "?"))
-      return;
-    }
-#endif
-
-   //write options
-
-   strncpy (home, (char*) lxGetUserDataDir (_T ("picsimlab")).char_str (), 1023);
-   snprintf (fname, 1279, "%s/picsimlab.ini", home);
-   prefs.SaveToFile (fname);
-
-   strncpy (home, (char*) lxGetTempDir (_T ("picsimlab")).char_str (), 1023);
-   strncat (home, "/picsimlab_workspace/", 1023);
-
-   lxRemoveDir (home);
-
-   lxCreateDir (home);
-
-   snprintf (fname, 1279, "%s/picsimlab.ini", home);
-   prefs.Clear ();
-   saveprefs (lxT ("picsimlab_lab"), boards_list[lab].name_);
-   saveprefs (lxT ("picsimlab_debug"), itoa (debug));
-   saveprefs (lxT ("picsimlab_debugt"), itoa (debug_type));
-   saveprefs (lxT ("picsimlab_debugp"), itoa (debug_port));
-   saveprefs (lxT ("picsimlab_position"), itoa (GetX ()) + lxT (",") + itoa (GetY ()));
-   saveprefs (lxT ("osc_on"), itoa (pboard->GetUseOscilloscope ()));
-   saveprefs (lxT ("spare_on"), itoa (pboard->GetUseSpareParts ()));
-   saveprefs (lxT ("picsimlab_lfile"), lxT (" "));
-
-   pboard->WritePreferences ();
-
-   if (pboard->GetUseOscilloscope ())
-    Window4.WritePreferences ();
-
-   if (pboard->GetUseSpareParts ())
-    Window5.WritePreferences ();
-
-
-   prefs.SaveToFile (fname);
-
-   //write memory
-   snprintf (fname, 1279, "%s/mdump_%s_%s.hex", home, boards_list[lab_].name_, (const char*) proc_.c_str ());
-
-   pboard->MDumpMemory (fname);
-
-   if (pboard->GetUseSpareParts ())
-    {
-
-     snprintf (fname, 1279, "%s/parts_%s.pcf", home, boards_list[lab_].name_);
-     Window5.SaveConfig (fname);
-    }
-
-   lxZipDir (home, filedialog2.GetFileName ());
-
-   lxRemoveDir (home);
-
-
-   strncpy (home, (char*) lxGetUserDataDir (_T ("picsimlab")).char_str (), 1023);
-   snprintf (fname, 1279, "%s/picsimlab.ini", home);
-   prefs.Clear ();
-   prefs.LoadFromFile (fname);
-
-#ifdef __EMSCRIPTEN__
-   EM_ASM_ ({
-            var filename = UTF8ToString ($0);
-            var buf = FS.readFile (filename);
-            var blob = new Blob ([buf],
-             {
-              "type" : "application/octet-stream" });
-            var text = URL.createObjectURL (blob);
-
-            var element = document.createElement ('a');
-            element.setAttribute ('href', text);
-            element.setAttribute ('download', filename);
-
-            element.style.display = 'none';
-            document.body.appendChild (element);
-
-            element.click ();
-
-            document.body.removeChild (element);
-            URL.revokeObjectURL (text);
-   }, filedialog2.GetFileName ().c_str ());
-#endif 
-
+   SaveWorkspace (filedialog2.GetFileName ());
   }
 
 }
@@ -1487,7 +1585,7 @@ extern "C"
    {
     printf ("Loading .pzw...\n");
     Window1.filedialog2.SetType (lxFD_OPEN | lxFD_CHANGE_DIR);
-    Window1.filedialog2.SetDir("/tmp/");
+    Window1.filedialog2.SetDir ("/tmp/");
     Window1.filedialog2.SetFileName (fname);
     Window1.filedialog2_EvOnClose (1);
    }
@@ -1495,18 +1593,26 @@ extern "C"
    {
     printf ("Loading .hex...\n");
     Window1.filedialog1.SetType (lxFD_OPEN | lxFD_CHANGE_DIR);
-    Window1.filedialog1.SetDir("/tmp/");
+    Window1.filedialog1.SetDir ("/tmp/");
     Window1.filedialog1.SetFileName (fname);
     Window1.filedialog1_EvOnClose (1);
    }
   else if (strstr (fname, ".pcf"))
    {
-     char buff[1024];
-     strncpy(buff,"/tmp/",1023);
-     strncat(buff,fname,1023);
-     printf ("Loading .pcf...\n");
-     Window5.LoadConfig (buff);
-     Window1.menu1_Modules_Spareparts_EvMenuActive(&Window1);
+    char buff[1024];
+    strncpy (buff, "/tmp/", 1023);
+    strncat (buff, fname, 1023);
+    printf ("Loading .pcf...\n");
+    Window5.LoadConfig (buff);
+    Window1.menu1_Modules_Spareparts_EvMenuActive (&Window1);
+   }
+  else if (strstr (fname, ".ppa"))
+   {
+    char buff[1024];
+    strncpy (buff, "/tmp/", 1023);
+    strncat (buff, fname, 1023);
+    printf ("Loading .ppa...\n");
+    Window5.LoadPinAlias (buff);
    }
   else
    {

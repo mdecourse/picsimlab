@@ -32,14 +32,7 @@
 #include<emscripten.h>
 #endif
 
-const char markers[] = "!$%&[()]";
-
-
-#ifdef DATA_DEBUG
-const char markersd[] = "*#+-<>?^";
-char data_debug_name[8][20] = {"d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8"};
-unsigned char data_debug[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-#endif  
+static const char markers[] = "!$%&[()]";
 
 /* outputs */
 enum
@@ -62,7 +55,7 @@ cpart_VCD_Dump::cpart_VCD_Dump(unsigned x, unsigned y)
  lxImage image;
  image.LoadFile (Window1.GetSharePath () + lxT ("parts/") + GetPictureFileName ());
 
- Bitmap = new lxBitmap (image, &Window5);
+ Bitmap = lxGetBitmapRotated(&image, &Window5, orientation);
  image.Destroy ();
  canvas.Create (Window5.GetWWidget (), Bitmap);
 
@@ -84,26 +77,6 @@ cpart_VCD_Dump::cpart_VCD_Dump(unsigned x, unsigned y)
  old_value_pins[6] = 2;
  old_value_pins[7] = 2;
 
-#ifdef DUMP_DIR
- old_value_dir[0] = 2;
- old_value_dir[1] = 2;
- old_value_dir[2] = 2;
- old_value_dir[3] = 2;
- old_value_dir[4] = 2;
- old_value_dir[5] = 2;
- old_value_dir[6] = 2;
- old_value_dir[7] = 2;
-#endif
-#ifdef DATA_DEBUG 
- old_data_debug[0] = 0xFF;
- old_data_debug[1] = 0xFF;
- old_data_debug[2] = 0xFF;
- old_data_debug[3] = 0xFF;
- old_data_debug[4] = 0xFF;
- old_data_debug[5] = 0xFF;
- old_data_debug[6] = 0xFF;
- old_data_debug[7] = 0xFF;
-#endif
 
  snprintf (f_vcd_name, 200, "%s/picsimlab-XXXXXX", (const char *) lxGetTempDir ("PICSimLab").c_str ());
  close (mkstemp (f_vcd_name));
@@ -138,10 +111,11 @@ cpart_VCD_Dump::Draw(void)
 {
 
  int i;
-
+ int to;
+ 
  const picpin * ppins = Window5.GetPinsValues ();
 
- canvas.Init ();
+ canvas.Init (1.0, 1.0, orientation);
 
  lxFont font (9, lxFONTFAMILY_TELETYPE, lxFONTSTYLE_NORMAL, lxFONTWEIGHT_BOLD);
  canvas.SetFont (font);
@@ -163,15 +137,24 @@ cpart_VCD_Dump::Draw(void)
      canvas.Rectangle (1, output[i].x1, output[i].y1, output[i].x2 - output[i].x1, output[i].y2 - output[i].y1);
      canvas.SetFgColor (255, 255, 255);
      if (input_pins[output[i].id - O_P1] == 0)
-      canvas.Text ("NC", output[i].x1, output[i].y1);
+      canvas.RotatedText ("NC", output[i].x1, output[i].y1, 0);
      else
-      canvas.Text (Window5.GetPinName (input_pins[output[i].id - O_P1]), output[i].x1, output[i].y1);
+      canvas.RotatedText (Window5.GetPinName (input_pins[output[i].id - O_P1]), output[i].x1, output[i].y1, 0);
      break;
     case O_NAME:
      canvas.SetColor (49, 61, 99);
      canvas.Rectangle (1, output[i].x1, output[i].y1, output[i].x2 - output[i].x1, output[i].y2 - output[i].y1);
      canvas.SetFgColor (255, 255, 255);
-     canvas.Text (f_vcd_name, output[i].x1, output[i].y1);
+     to = strlen (f_vcd_name);
+     if (to < 48)
+      {
+       to = 0;
+      }
+     else
+      {
+       to = to - 48;
+      }
+     canvas.RotatedText (f_vcd_name+to, output[i].x1, output[i].y1, 0);
      break;
     case O_L1:
     case O_L2:
@@ -249,7 +232,7 @@ cpart_VCD_Dump::get_out_id(char * name)
 
  printf ("Erro output '%s' don't have a valid id! \n", name);
  return 1;
-};
+}
 
 lxString
 cpart_VCD_Dump::WritePreferences(void)
@@ -266,7 +249,6 @@ cpart_VCD_Dump::ReadPreferences(lxString value)
 {
  sscanf (value.c_str (), "%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu", &input_pins[0], &input_pins[1], &input_pins[2], &input_pins[3], &input_pins[4], &input_pins[5], &input_pins[6], &input_pins[7]);
 }
-
 
 void
 cpart_VCD_Dump::ConfigurePropertiesWindow(CPWindow * WProp)
@@ -375,7 +357,6 @@ cpart_VCD_Dump::Process(void)
   {
    const picpin * ppins = Window5.GetPinsValues ();
 
-
    vcd_count++;
    int tprint = 0;
 
@@ -383,7 +364,6 @@ cpart_VCD_Dump::Process(void)
     {
      if (input_pins[i] != 0)
       {
-#ifndef DUMP_DIR       
        if (ppins[input_pins[i] - 1].value != old_value_pins[i])
         {
          if (!tprint)
@@ -395,46 +375,7 @@ cpart_VCD_Dump::Process(void)
          fprintf (f_vcd, "%i%c\n", old_value_pins[i], markers[i]);
          fflush (f_vcd);
         }
-#else
-       if ((ppins[input_pins[i] - 1].value != old_value_pins[i]) ||
-           (ppins[input_pins[i] - 1].dir != old_value_dir[i]))
-        {
-         if (!tprint)
-          {
-           tprint = 1;
-           fprintf (f_vcd, "#%li\n", vcd_count);
-          }
-         old_value_pins[i] = ppins[input_pins[i] - 1].value;
-         old_value_dir[i] = ppins[input_pins[i] - 1].dir;
-         fprintf (f_vcd, "b%i%i %c\n", old_value_pins[i], old_value_dir[i], markers[i]);
-         fflush (f_vcd);
-        }
-#endif       
-
       }
-#ifdef DATA_DEBUG       
-     if (data_debug[i] != old_data_debug[i])
-      {
-       if (!tprint)
-        {
-         tprint = 1;
-         fprintf (f_vcd, "#%li\n", vcd_count);
-        }
-       old_data_debug[i] = data_debug[i];
-       fprintf (f_vcd, "b%i%i%i%i%i%i%i%i %c\n",
-                (data_debug[i]&0x80) > 0,
-                (data_debug[i]&0x40) > 0,
-                (data_debug[i]&0x20) > 0,
-                (data_debug[i]&0x10) > 0,
-                (data_debug[i]&0x08) > 0,
-                (data_debug[i]&0x04) > 0,
-                (data_debug[i]&0x02) > 0,
-                (data_debug[i]&0x01) > 0,
-                markersd[i]);
-       fflush (f_vcd);
-      }
-
-#endif       
     }
   }
 }
@@ -446,7 +387,7 @@ cpart_VCD_Dump::EvMouseButtonPress(uint button, uint x, uint y, uint state)
 
  for (i = 0; i < inputc; i++)
   {
-   if (((input[i].x1 <= x)&&(input[i].x2 >= x))&&((input[i].y1 <= y)&&(input[i].y2 >= y)))
+   if (PointInside(x, y, input[i]))
     {
 
      switch (input[i].id)
@@ -454,36 +395,23 @@ cpart_VCD_Dump::EvMouseButtonPress(uint button, uint x, uint y, uint state)
       case I_START:
        if (!rec)
         {
-         unsigned int tscale= 1.0e9/Window1.GetBoard ()->MGetInstClock (); //ns step
-         
+         float tscale = 1.0e9 / Window1.GetBoard ()->MGetInstClock (); //ns step
+
          f_vcd = fopen (f_vcd_name, "w");
          vcd_count = 0;
-         
-         
 
-#ifndef DUMP_DIR         
          fprintf (f_vcd,
                   "$version Generated by PICSimLab $end\n"
-                  "$timescale %ins $end\n"
+                  "$timescale %fns $end\n"
                   "$scope module logic $end\n"
                   "$var wire 1 !  1-%s $end\n"
                   "$var wire 1 $  2-%s $end\n"
-                  "$var wire 1 %% 3-%s $end\n"
+                  "$var wire 1 %%  3-%s $end\n"
                   "$var wire 1 &  4-%s $end\n"
                   "$var wire 1 [  5-%s $end\n"
                   "$var wire 1 (  6-%s $end\n"
                   "$var wire 1 )  7-%s $end\n"
                   "$var wire 1 ]  8-%s $end\n"
-#ifdef DATA_DEBUG  
-                  "$var wire 8 *  %s $end\n"
-                  "$var wire 8 #  %s $end\n"
-                  "$var wire 8 +  %s $end\n"
-                  "$var wire 8 -  %s $end\n"
-                  "$var wire 8 <  %s $end\n"
-                  "$var wire 8 >  %s $end\n"
-                  "$var wire 8 ?  %s $end\n"
-                  "$var wire 8 ^  %s $end\n"
-#endif             
                   "$upscope $end\n"
                   "$enddefinitions $end\n"
                   "$dumpvars\n"
@@ -495,17 +423,7 @@ cpart_VCD_Dump::EvMouseButtonPress(uint button, uint x, uint y, uint state)
                   "x(\n"
                   "x)\n"
                   "x[\n"
-#ifdef DATA_DEBUG  
-                  "bxxxxxxxx *\n"
-                  "bxxxxxxxx #\n"
-                  "bxxxxxxxx +\n"
-                  "bxxxxxxxx -\n"
-                  "bxxxxxxxx <\n"
-                  "bxxxxxxxx >\n"
-                  "bxxxxxxxx ?\n"
-                  "bxxxxxxxx ^\n"
-#endif             
-                  "$end\n",tscale,
+                  "$end\n", tscale,
                   (const char *) Window5.GetPinName (input_pins[0]).c_str (),
                   (const char *) Window5.GetPinName (input_pins[1]).c_str (),
                   (const char *) Window5.GetPinName (input_pins[2]).c_str (),
@@ -514,82 +432,7 @@ cpart_VCD_Dump::EvMouseButtonPress(uint button, uint x, uint y, uint state)
                   (const char *) Window5.GetPinName (input_pins[5]).c_str (),
                   (const char *) Window5.GetPinName (input_pins[6]).c_str (),
                   (const char *) Window5.GetPinName (input_pins[7]).c_str ()
-#ifdef DATA_DEBUG  
-                  ,data_debug_name[0],
-                  data_debug_name[1],
-                  data_debug_name[2],
-                  data_debug_name[3],
-                  data_debug_name[4],
-                  data_debug_name[5],
-                  data_debug_name[6],
-                  data_debug_name[7]
-#endif                      
-                      );
-#else
-         fprintf (f_vcd,
-                  "$version Generated by PICSimLab $end\n"
-                  "$timescale 10ns $end\n"
-                  "$scope module logic $end\n"
-                  "$var wire 2 !  1-%s $end\n"
-                  "$var wire 2 $  2-%s $end\n"
-                  "$var wire 2 %% 3-%s $end\n"
-                  "$var wire 2 &  4-%s $end\n"
-                  "$var wire 2 [  5-%s $end\n"
-                  "$var wire 2 (  6-%s $end\n"
-                  "$var wire 2 )  7-%s $end\n"
-                  "$var wire 2 ]  8-%s $end\n"
-#ifdef DATA_DEBUG  
-                  "$var wire 8 *  %s $end\n"
-                  "$var wire 8 #  %s $end\n"
-                  "$var wire 8 +  %s $end\n"
-                  "$var wire 8 -  %s $end\n"
-                  "$var wire 8 <  %s $end\n"
-                  "$var wire 8 >  %s $end\n"
-                  "$var wire 8 ?  %s $end\n"
-                  "$var wire 8 ^  %s $end\n"
-#endif                    
-                  "$upscope $end\n"
-                  "$enddefinitions $end\n"
-                  "$dumpvars\n"
-                  "bxx !\n"
-                  "bxx $\n"
-                  "bxx %%\n"
-                  "bxx &\n"
-                  "bxx [\n"
-                  "bxx (\n"
-                  "bxx )\n"
-                  "bxx [\n"
-#ifdef DATA_DEBUG  
-                  "bxxxxxxxx *\n"
-                  "bxxxxxxxx #\n"
-                  "bxxxxxxxx +\n"
-                  "bxxxxxxxx -\n"
-                  "bxxxxxxxx <\n"
-                  "bxxxxxxxx >\n"
-                  "bxxxxxxxx ?\n"
-                  "bxxxxxxxx ^\n"
-#endif                 
-                  "$end\n",
-                  (const char *) Window5.GetPinName (input_pins[0]).c_str (),
-                  (const char *) Window5.GetPinName (input_pins[1]).c_str (),
-                  (const char *) Window5.GetPinName (input_pins[2]).c_str (),
-                  (const char *) Window5.GetPinName (input_pins[3]).c_str (),
-                  (const char *) Window5.GetPinName (input_pins[4]).c_str (),
-                  (const char *) Window5.GetPinName (input_pins[5]).c_str (),
-                  (const char *) Window5.GetPinName (input_pins[6]).c_str (),
-                  (const char *) Window5.GetPinName (input_pins[7]).c_str ()
-             #ifdef DATA_DEBUG  
-                  ,data_debug_name[0],
-                  data_debug_name[1],
-                  data_debug_name[2],
-                  data_debug_name[3],
-                  data_debug_name[4],
-                  data_debug_name[5],
-                  data_debug_name[6],
-                  data_debug_name[7]
-#endif 
-             );
-#endif         
+                  );
          rec = 1;
         }
        else
@@ -604,27 +447,29 @@ cpart_VCD_Dump::EvMouseButtonPress(uint button, uint x, uint y, uint state)
        break;
       case I_VIEW:
 #ifdef __EMSCRIPTEN__
-   EM_ASM_({
-	   var filename=UTF8ToString($0);
-           var buf = FS.readFile(filename);
-           var blob = new Blob([buf],  {"type" : "application/octet-stream" });
-           var text = URL.createObjectURL(blob);
+       EM_ASM_ ({
+                var filename = UTF8ToString ($0);
+                var buf = FS.readFile (filename);
+                var blob = new Blob ([buf],
+                 {
+                  "type" : "application/octet-stream" });
+                var text = URL.createObjectURL (blob);
 
-	   var element = document.createElement('a');
-           element.setAttribute('href', text);
-           element.setAttribute('download', filename);
+                var element = document.createElement ('a');
+                element.setAttribute ('href', text);
+                element.setAttribute ('download', filename);
 
-           element.style.display = 'none';
-           document.body.appendChild(element);
+                element.style.display = 'none';
+                document.body.appendChild (element);
 
-           element.click();
+                element.click ();
 
-           document.body.removeChild(element);
-           URL.revokeObjectURL(text);
-	  },f_vcd_name);
+                document.body.removeChild (element);
+                URL.revokeObjectURL (text);
+       }, f_vcd_name);
 #else
 #ifdef _WIN_
-       lxExecute (Window1.GetSharePath()+ lxT ("/../tools/gtkwave/bin/gtkwave.exe ") + f_vcd_name);
+       lxExecute (Window1.GetSharePath () + lxT ("/../tools/gtkwave/bin/gtkwave.exe ") + f_vcd_name);
 #else
 
        lxExecute (lxString ("gtkwave ") + f_vcd_name, lxEXEC_MAKE_GROUP_LEADER);

@@ -158,7 +158,7 @@ cpart_keypad::ChangeType(unsigned char tp)
  lxImage image;
  image.LoadFile (Window1.GetSharePath () + lxT ("parts/") + GetPictureFileName ());
 
- Bitmap = new lxBitmap (image, &Window5);
+ Bitmap = lxGetBitmapRotated(&image, &Window5, orientation);
  image.Destroy ();
 
  canvas.Create (Window5.GetWWidget (), Bitmap);
@@ -171,7 +171,7 @@ cpart_keypad::Draw(void)
 
  int i;
 
- canvas.Init ();
+ canvas.Init (1.0, 1.0, orientation);
 
  lxFont font (9, lxFONTFAMILY_TELETYPE, lxFONTSTYLE_NORMAL, lxFONTWEIGHT_BOLD);
  canvas.SetFont (font);
@@ -278,7 +278,7 @@ cpart_keypad::EvMouseButtonPress(uint button, uint x, uint y, uint state)
 
  for (i = 0; i < inputc; i++)
   {
-   if (((input[i].x1 <= x)&&(input[i].x2 >= x))&&((input[i].y1 <= y)&&(input[i].y2 >= y)))
+   if (PointInside(x, y, input[i]))
     {
 
      switch (input[i].id)
@@ -327,7 +327,7 @@ cpart_keypad::EvMouseButtonRelease(uint button, uint x, uint y, uint state)
 
  for (i = 0; i < inputc; i++)
   {
-   if (((input[i].x1 <= x)&&(input[i].x2 >= x))&&((input[i].y1 <= y)&&(input[i].y2 >= y)))
+   if (PointInside(x, y, input[i]))
     {
      switch (input[i].id)
       {
@@ -582,7 +582,7 @@ cpart_keypad::ReadPropertiesWindow(CPWindow * WProp)
 
  lxString tps = ((CCombo*) WProp->GetChildByName ("combo10"))->GetText ();
 
- ComboChange (tps);
+ ComboChange ((CCombo*) WProp->GetChildByName ("combo10"), tps);
 
  memset (keys, 0, 16);
  memset (keys2, 0, 10);
@@ -590,7 +590,7 @@ cpart_keypad::ReadPropertiesWindow(CPWindow * WProp)
 }
 
 void
-cpart_keypad::ComboChange(lxString value)
+cpart_keypad::ComboChange(CCombo * control, lxString value)
 {
  if (!value.compare (lxT ("4x3")))
   {

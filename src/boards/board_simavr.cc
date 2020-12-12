@@ -64,13 +64,6 @@ extern "C"
  int gdb_watch_find(const avr_gdb_watchpoints_t * w, uint32_t addr);
 }
 
-unsigned long avr_serial_send(unsigned char c);
-unsigned long avr_serial_rec(unsigned char * c);
-int avr_serial_get_dsr(void);
-int avr_serial_open(char * SERIALDEVICE);
-int avr_serial_cfg(float serialexbaud);
-int avr_serial_close(void);
-
 board_simavr::board_simavr(void)
 {
  avr = NULL;
@@ -79,9 +72,9 @@ board_simavr::board_simavr(void)
 }
 
 void
-board_simavr::MSetSerial(const char * port) {
- //TODO change serial name
- //pic_set_serial(&pic,port,0,0,0);
+board_simavr::MSetSerial(const char * port)
+{
+
 }
 
 enum
@@ -219,7 +212,7 @@ board_simavr::MInit(const char * processor, const char * fname, float freq)
  avr_ioctl (avr, AVR_IOCTL_UART_SET_FLAGS ('0'), &f);
 
  serial_irq = avr_alloc_irq (&avr->irq_pool, 0, IRQ_UART_COUNT, irq_names_uart);
- avr_irq_register_notify (serial_irq + IRQ_UART_BYTE_IN, uart_in_hook, NULL);
+ avr_irq_register_notify (serial_irq + IRQ_UART_BYTE_IN, uart_in_hook, this);
 
  avr_irq_t * src = avr_io_getirq (avr, AVR_IOCTL_UART_GETIRQ ('0'), UART_IRQ_OUTPUT);
  avr_irq_t * dst = avr_io_getirq (avr, AVR_IOCTL_UART_GETIRQ ('0'), UART_IRQ_INPUT);
@@ -229,12 +222,19 @@ board_simavr::MInit(const char * processor, const char * fname, float freq)
    avr_connect_irq (serial_irq + IRQ_UART_BYTE_OUT, dst);
   }
 
- avr_serial_open (SERIALDEVICE);
+ serial_port_open (&serialfd, SERIALDEVICE);
 
- //TODO read baudrate value from avr 
- serialexbaud = 57600;
- serialbaud = avr_serial_cfg (serialexbaud);
+ serialexbaud = 9600;
+ serialbaud = serial_port_cfg (serialfd, serialexbaud);
 
+ bitbang_uart_init (&bb_uart);
+
+ bitbang_uart_set_speed (&bb_uart, serialexbaud);
+ bitbang_uart_set_clk_freq (&bb_uart, freq);
+
+ pin_rx = 2; //PD0
+ pin_tx = 3; //PD1  
+ uart_config = 0;
  return ret;
 }
 
@@ -250,7 +250,7 @@ board_simavr::MEnd(void)
    mplabxd_end ();
   }
 
- avr_serial_close ();
+ serial_port_close (serialfd);
 
  avr_terminate (avr);
 
@@ -292,6 +292,7 @@ board_simavr::MEnd(void)
  free (avr);
  avr = NULL;
 
+ bitbang_uart_end (&bb_uart);
 }
 
 void
@@ -305,7 +306,10 @@ void
 board_simavr::MSetFreq(float freq)
 {
  if (avr)
-  avr->frequency = freq;
+  {
+   avr->frequency = freq;
+   bitbang_uart_set_clk_freq (&bb_uart, freq);
+  }
 }
 
 float
@@ -329,7 +333,6 @@ board_simavr::MDumpMemory(const char * fname)
 void
 avr_callback_run_gdb_(avr_t * avr)
 {
-
  avr_gdb_t * g = avr->gdb;
 
  if (avr->state == cpu_Running &&
@@ -375,13 +378,16 @@ board_simavr::DebugInit(int dtyppe)
  if (avr_debug_type)
   {
    avr->gdb_port = Window1.Get_debug_port ();
-   int ret = avr_gdb_init (avr);
-   avr->run = avr_callback_run_gdb_;
-   avr->sleep = avr_callback_sleep_raw_;
-   if (ret)
-    return -1;
+   if (avr_gdb_init (avr))
+    {
+     return -1;
+    }
    else
-    return 1;
+    {
+     avr->run = avr_callback_run_gdb_;
+     avr->sleep = avr_callback_sleep_raw_;
+     return 1;
+    }
   }
  else
   {
@@ -407,7 +413,7 @@ board_simavr::DebugLoop(void)
 {
  if (Window1.Get_mcupwr ())
   {
-   if (avr_debug_type)
+   if ((avr_debug_type)&&(avr->gdb))
     {
      // this also sleeps for a bit
      gdb_network_handler (avr->gdb, 0);
@@ -540,12 +546,12 @@ board_simavr::MGetPinName(int pin)
     case 32:
      return "GND";
      break;
-     //case 33:
-     //return "XTAL2";
-     //break;
-     //case 34:
-     //return "XTAL1";
-     //break;
+    case 33:
+     return "XTAL2";
+     break;
+    case 34:
+     return "XTAL1";
+     break;
     case 35:
      return "PL0/49";
      break;
@@ -735,9 +741,9 @@ board_simavr::MGetPinName(int pin)
     case 97:
      return "PF0/A0";
      break;
-     //case 98:
-     //return "AREF";
-     //break;
+    case 98:
+     return "AREF";
+     break;
     case 99:
      return "GND";
      break;
@@ -750,8 +756,9 @@ board_simavr::MGetPinName(int pin)
   {
    switch (pin)
     {
-     //case 1:
-     //  return "PC6 (RST)";break;
+    case 1:
+     return "PC6/RST";
+     break;
     case 2:
      return "PD0/0";
      break;
@@ -774,10 +781,10 @@ board_simavr::MGetPinName(int pin)
      return "GND";
      break;
     case 9:
-     return "PB6/(OSC1)";
+     return "PB6/X1";
      break;
     case 10:
-     return "PB7/(OSC2)";
+     return "PB7/X2";
      break;
     case 11:
      return "PD5/~5";
@@ -809,8 +816,9 @@ board_simavr::MGetPinName(int pin)
     case 20:
      return "+5V";
      break;
-     //case 21:
-     //  return "AREF";break;
+    case 21:
+     return "AREF";
+     break;
     case 22:
      return "GND";
      break;
@@ -855,7 +863,7 @@ board_simavr::MSetPinDOV(int pin, unsigned char ovalue)
  if (avr == NULL) return;
  if (!pins[pin - 1].dir)return;
  if (pins[pin - 1].ovalue == ovalue)return;
- //TODO this value is not used yet
+ //TODO default output value is not used yet (DOV)
  pins[pin - 1].ovalue = ovalue;
 }
 
@@ -985,13 +993,20 @@ board_simavr::MGetPinsValues(void)
  return pins;
 }
 
+void
+board_simavr::SerialSend(unsigned char value)
+{
+ serial_port_send (serialfd, value);
+ bitbang_uart_send (&bb_uart, value);
+}
+
 /*
  * called when a byte is send via the uart on the AVR
  */
 static void
 uart_in_hook(struct avr_irq_t * irq, uint32_t value, void * param)
 {
- avr_serial_send (value);
+ ((board_simavr *) param)->SerialSend (value);
 }
 
 int cont = 0;
@@ -1004,30 +1019,75 @@ board_simavr::UpdateHardware(void)
  unsigned char c;
  cont++;
 
- //FIXME  correct the baud rate
- if (cont > 1000)
+ if (avr->data[UCSR0B] & 0x10)//RXEN
   {
-   cont = 0;
-   if (avr_serial_rec (&c))
+   if (cont > 1000)
     {
-     avr_raise_irq (serial_irq + IRQ_UART_BYTE_OUT, c);
-    }
-
-   if (avr_serial_get_dsr ())
-    {
-     if (aux)
+     cont = 0;
+     if (serial_port_rec (serialfd, &c))
       {
-       avr_reset (avr);
-       pins_reset ();
-       aux = 0;
+       avr_raise_irq (serial_irq + IRQ_UART_BYTE_OUT, c);
       }
-    }
-   else
-    {
-     aux = 1;
+
+     if (serial_port_get_dsr (serialfd))
+      {
+       if (aux)
+        {
+         avr_reset (avr);
+         pins_reset ();
+         aux = 0;
+        }
+      }
+     else
+      {
+       aux = 1;
+      }
+
+     if (bitbang_uart_data_available (&bb_uart))
+      {
+       unsigned char data = bitbang_uart_recv (&bb_uart);
+       //printf ("data recv:%02X  %c\n", data,data);
+       avr_raise_irq (serial_irq + IRQ_UART_BYTE_OUT, data);
+      }
+
     }
   }
 
+ if (avr->data[UCSR0B] & 0x18)//RXEN TXEN
+  {
+   if (!uart_config)
+    {
+     uart_config = 1;
+
+     if (avr->data[UCSR0A] & 0x02) //U2Xn
+      {
+       serialexbaud = avr->frequency / (8 * (((avr->data[UBRR0H] << 8) | avr->data[UBRR0L]) + 1));
+      }
+     else
+      {
+       serialexbaud = avr->frequency / (16 * (((avr->data[UBRR0H] << 8) | avr->data[UBRR0L]) + 1));
+      }
+
+
+     serialbaud = serial_port_cfg (serialfd, serialexbaud);
+
+     //printf ("baud=%i %f\n", serialbaud, serialexbaud);
+
+     bitbang_uart_init (&bb_uart);
+
+     bitbang_uart_set_speed (&bb_uart, serialexbaud);
+     bitbang_uart_set_clk_freq (&bb_uart, avr->frequency);
+
+     pins[pin_rx - 1 ].dir = PD_IN;
+     pins[pin_tx - 1 ].dir = PD_OUT;
+    }
+
+   pins[pin_tx - 1 ].value = bitbang_uart_io (&bb_uart, pins[pin_rx - 1 ].value);
+  }
+ else
+  {
+   uart_config = 0;
+  }
 }
 
 void
@@ -1049,6 +1109,7 @@ void
 board_simavr::MReset(int flags)
 {
  avr_reset (avr);
+ bitbang_uart_rst (&bb_uart);
 }
 
 unsigned short *

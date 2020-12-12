@@ -40,7 +40,7 @@ enum
  I_PO1, I_PO2, I_PO3, I_PO4
 };
 
-cpart_pot::cpart_pot (unsigned x, unsigned y)
+cpart_pot::cpart_pot(unsigned x, unsigned y)
 {
  X = x;
  Y = y;
@@ -49,7 +49,7 @@ cpart_pot::cpart_pot (unsigned x, unsigned y)
  lxImage image;
  image.LoadFile (Window1.GetSharePath () + lxT ("parts/") + GetPictureFileName ());
 
- Bitmap = new lxBitmap (image, &Window5);
+ Bitmap = lxGetBitmapRotated (&image, &Window5, orientation);
  image.Destroy ();
 
  canvas.Create (Window5.GetWWidget (), Bitmap);
@@ -72,21 +72,20 @@ cpart_pot::cpart_pot (unsigned x, unsigned y)
 
 }
 
-cpart_pot::~cpart_pot (void)
+cpart_pot::~cpart_pot(void)
 {
  delete Bitmap;
- canvas.Destroy();
+ canvas.Destroy ();
 }
 
 void
-cpart_pot::Draw (void)
+cpart_pot::Draw(void)
 {
 
  int i;
- lxRect rect;
- char  val[10];
- 
- canvas.Init ();
+ char val[10];
+
+ canvas.Init (1.0, 1.0, orientation);
 
  lxFont font (9, lxFONTFAMILY_TELETYPE, lxFONTSTYLE_NORMAL, lxFONTWEIGHT_BOLD);
  lxFont font_p (6, lxFONTFAMILY_TELETYPE, lxFONTSTYLE_NORMAL, lxFONTWEIGHT_BOLD);
@@ -105,9 +104,9 @@ cpart_pot::Draw (void)
      canvas.Rectangle (1, output[i].x1, output[i].y1, output[i].x2 - output[i].x1, output[i].y2 - output[i].y1);
      canvas.SetFgColor (255, 255, 255);
      if (input_pins[output[i].id - O_P1] == 0)
-      canvas.Text ("NC", output[i].x1, output[i].y1);
+      canvas.RotatedText ("NC", output[i].x1, output[i].y1, 0);
      else
-      canvas.Text (Window5.GetPinName (input_pins[output[i].id - O_P1]), output[i].x1, output[i].y1);
+      canvas.RotatedText (Window5.GetPinName (input_pins[output[i].id - O_P1]), output[i].x1, output[i].y1, 0);
      break;
     case O_PO1:
     case O_PO2:
@@ -116,15 +115,11 @@ cpart_pot::Draw (void)
      canvas.SetColor (50, 50, 50);
      canvas.Rectangle (1, output[i].x1, output[i].y1, output[i].x2 - output[i].x1, output[i].y2 - output[i].y1);
      canvas.SetColor (250, 250, 250);
-     rect.x=output[i].x1 + 6;
-     rect.y=output[i].y1 + values[output[i].id - O_PO1];
-     rect.width=20;
-     rect.height= 10;  
-     snprintf (val,10,"%4.2f", 5.0 * (148 - values[output[i].id - O_PO1]) / 148.0);
-     canvas.Rectangle (1, rect.x, rect.y, 20, 10);
+     snprintf (val, 10, "%4.2f", 5.0 * (148 - values[output[i].id - O_PO1]) / 148.0);
+     canvas.Rectangle (1, output[i].x1 + 6, output[i].y1 + values[output[i].id - O_PO1], 20, 10);
      canvas.SetColor (150, 0, 0);
      canvas.SetFont (font_p);
-     canvas.TextOnRect (val,rect,CA_CENTER);
+     canvas.RotatedText (val, output[i].x1 + 6, output[i].y1 + values[output[i].id - O_PO1], 0);
      break;
      break;
     }
@@ -137,16 +132,16 @@ cpart_pot::Draw (void)
 }
 
 void
-cpart_pot::PreProcess (void)
+cpart_pot::PreProcess(void)
 {
-   Window5.SetAPin (input_pins[0], 5.0 * (148 - values[0]) / 148.0);
-   Window5.SetAPin (input_pins[1], 5.0 * (148 - values[1]) / 148.0);
-   Window5.SetAPin (input_pins[2], 5.0 * (148 - values[2]) / 148.0);
-   Window5.SetAPin (input_pins[3], 5.0 * (148 - values[3]) / 148.0);
+ Window5.SetAPin (input_pins[0], 5.0 * (148 - values[0]) / 148.0);
+ Window5.SetAPin (input_pins[1], 5.0 * (148 - values[1]) / 148.0);
+ Window5.SetAPin (input_pins[2], 5.0 * (148 - values[2]) / 148.0);
+ Window5.SetAPin (input_pins[3], 5.0 * (148 - values[3]) / 148.0);
 }
 
 void
-cpart_pot::EvMouseButtonPress (uint button, uint x, uint y, uint state)
+cpart_pot::EvMouseButtonPress(uint button, uint x, uint y, uint state)
 {
 
  int i;
@@ -154,9 +149,21 @@ cpart_pot::EvMouseButtonPress (uint button, uint x, uint y, uint state)
 
  for (i = 0; i < inputc; i++)
   {
-   if (((input[i].x1 <= x)&&(input[i].x2 >= x))&&((input[i].y1 <= y)&&(input[i].y2 >= y)))
+   if (PointInside (x, y, input[i]))
     {
      l = (input[i].y2 - input[i].y1 - 10);
+     switch (orientation)
+      {
+      case 1:
+       y = Height - x;
+       break;
+      case 2:
+       y = Height - y;
+       break;
+      case 3:
+       y = x;
+       break;
+      }
      switch (input[i].id)
       {
       case I_PO1:
@@ -186,13 +193,13 @@ cpart_pot::EvMouseButtonPress (uint button, uint x, uint y, uint state)
 }
 
 void
-cpart_pot::EvMouseButtonRelease (uint button, uint x, uint y, uint state)
+cpart_pot::EvMouseButtonRelease(uint button, uint x, uint y, uint state)
 {
  int i;
 
  for (i = 0; i < inputc; i++)
   {
-   if (((input[i].x1 <= x)&&(input[i].x2 >= x))&&((input[i].y1 <= y)&&(input[i].y2 >= y)))
+   if (PointInside (x, y, input[i]))
     {
      switch (input[i].id)
       {
@@ -214,7 +221,7 @@ cpart_pot::EvMouseButtonRelease (uint button, uint x, uint y, uint state)
 }
 
 void
-cpart_pot::EvMouseMove (uint button, uint x, uint y, uint state)
+cpart_pot::EvMouseMove(uint button, uint x, uint y, uint state)
 {
 
  int i;
@@ -222,46 +229,34 @@ cpart_pot::EvMouseMove (uint button, uint x, uint y, uint state)
 
  for (i = 0; i < inputc; i++)
   {
-   if (((input[i].x1 <= x)&&(input[i].x2 >= x))&&((input[i].y1 <= y)&&(input[i].y2 >= y)))
+   if (PointInside (x, y, input[i]))
     {
-     l = (input[i].y2 - input[i].y1 - 10);
-     switch (input[i].id)
+     l = (input[i].y2 - input[i].y1) - 10;
+
+     switch (orientation)
       {
-      case I_PO1:
-       if (active[0])
-        {
-         values[0] = y - input[i].y1;
-         if (values[0] >= l)values[0] = l;
-        }
+      case 1:
+       y = Height - x;
        break;
-      case I_PO2:
-       if (active[1])
-        {
-         values[1] = y - input[i].y1;
-         if (values[1] >= l)values[1] = l;
-        }
+      case 2:
+       y = Height - y;
        break;
-      case I_PO3:
-       if (active[2])
-        {
-         values[2] = y - input[i].y1;
-         if (values[2] >= l)values[2] = l;
-        }
+      case 3:
+       y = x;
        break;
-      case I_PO4:
-       if (active[3])
-        {
-         values[3] = y - input[i].y1;
-         if (values[3] >= l)values[3] = l;
-        }
-       break;
+      }
+
+     if (active[input[i].id - I_PO1])
+      {
+       values[input[i].id - I_PO1] = y - input[i].y1;
+       if (values[input[i].id - I_PO1] >= l)values[input[i].id - I_PO1] = l;
       }
     }
   }
 }
 
 unsigned short
-cpart_pot::get_in_id (char * name)
+cpart_pot::get_in_id(char * name)
 {
 
  if (strcmp (name, "PO1") == 0)return I_PO1;
@@ -274,7 +269,7 @@ cpart_pot::get_in_id (char * name)
 }
 
 unsigned short
-cpart_pot::get_out_id (char * name)
+cpart_pot::get_out_id(char * name)
 {
 
  if (strcmp (name, "P1") == 0)return O_P1;
@@ -292,7 +287,7 @@ cpart_pot::get_out_id (char * name)
 }
 
 lxString
-cpart_pot::WritePreferences (void)
+cpart_pot::WritePreferences(void)
 {
  char prefs[256];
 
@@ -302,14 +297,13 @@ cpart_pot::WritePreferences (void)
 }
 
 void
-cpart_pot::ReadPreferences (lxString value)
+cpart_pot::ReadPreferences(lxString value)
 {
  sscanf (value.c_str (), "%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu", &input_pins[0], &input_pins[1], &input_pins[2], &input_pins[3], &values[0], &values[1], &values[2], &values[3]);
 }
 
-
 void
-cpart_pot::ConfigurePropertiesWindow (CPWindow * WProp)
+cpart_pot::ConfigurePropertiesWindow(CPWindow * WProp)
 {
  lxString Items = Window5.GetPinsNames ();
  lxString spin;
@@ -358,7 +352,7 @@ cpart_pot::ConfigurePropertiesWindow (CPWindow * WProp)
 }
 
 void
-cpart_pot::ReadPropertiesWindow (CPWindow * WProp)
+cpart_pot::ReadPropertiesWindow(CPWindow * WProp)
 {
  input_pins[0] = atoi (((CCombo*) WProp->GetChildByName ("combo1"))->GetText ());
  input_pins[1] = atoi (((CCombo*) WProp->GetChildByName ("combo2"))->GetText ());
